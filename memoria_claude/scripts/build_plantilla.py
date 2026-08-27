@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-build_plantilla_v7.py (sesion 24)
-Version consolidada final para el archivo LIVIANO 02_MINUTAS_CLIENTES_PLANTILLA.xlsm.
+build_plantilla.py -- pipeline PLANTILLA para el archivo LIVIANO
+02_MINUTAS_CLIENTES_PLANTILLA.xlsm.
+
+NOTA (sesion 33, H2): este archivo se llamaba build_plantilla_v14.py. Desde que RT tiene
+git (sesion 33), el versionado vive en el historial de commits, no en el nombre del
+archivo -- ya no habra mas build_plantilla_v15.py, v16.py, etc. Los v7 a v13 fueron
+eliminados de la carpeta (siguen consultables en el historial de git). El historial de
+"NUEVO vN (sesion X)" mas abajo se conserva tal cual, como bitacora de las decisiones que
+dieron forma al pipeline -- es historia de PRODUCTO, no de archivo, y sigue siendo util
+leerla en orden.
 
 Hereda de versiones anteriores:
   v3: deteccion de columnas por NOMBRE (ListObjects) en vez de posicion fija.
@@ -57,6 +65,46 @@ NUEVO v12 (sesion 30, nueva semana de gestion -- TNOGAL, MAILEMU MIEL, CORRALES 
      TNOGAL, MAILEMU MIEL y CORRALES DEL SUR (nueva semana). Como el pipeline ya filtraba
      REPORTES/OSA a `clientes_foco` (los clientes presentes en MINUTA), el resultado queda
      acotado automaticamente a estos 3 -- sin necesidad de una lista hardcodeada.
+
+NUEVO v13 (sesion 30, continuacion -- "modelo mas eficiente" + autocompletar Local/Gestor/
+  Supervisor):
+  1) YA NO se hace CLEAR total de PLANTILLA. Se reemplazan SOLO las filas de los clientes
+     presentes en `clientes_foco` (los que trae la MINUTA de esta corrida); las filas de
+     cualquier otro cliente que ya estuviera en PLANTILLA (de una semana/corrida anterior)
+     se preservan intactas, incluida cualquier edicion manual en Estatus/Respuesta
+     Supervisor/Fecha Respuesta que el usuario haya hecho sobre esas filas. Esto es lo que
+     permite trabajar "solo a los clientes nuevos que vayan apareciendo, o lo que se indique
+     en cada mensaje" sin perder el trabajo ya cargado de los demas.
+  2) Local/Gestor/Supervisor (columnas F/G/H, antes siempre en blanco) ahora se autocompletan
+     cruzando por (CLIENTE, cadena, cod_local_norm) contra RUTA_RUTERO (Tabla7), que trae
+     CADENA/LOCAL/GESTORES/SUPERVISOR por sala. Si una sala no aparece en RUTA_RUTERO (caso
+     raro), se usa como respaldo el texto de Local/Gestor visto en la propia fila de
+     REPORTES u OSA para esa sala; si tampoco hay eso, queda en blanco (nunca se inventa).
+
+NUEVO v14 (sesion 32, cliente MORETTA -- "genera la PLANTILLA solo con OSA y REPORTES"):
+  1) BUG ENCONTRADO Y CORREGIDO CON CUIDADO: `clientes_foco` se calculaba SOLO desde los
+     clientes presentes en MINUTA (`Tabla4`). Un cliente con datos en REPORTES y/o OSA pero
+     SIN ninguna fila en MINUTA (como MORETTA esta semana: 5 filas REPORTES, 3 OSA, 0 MINUTA)
+     quedaba SILENCIOSAMENTE excluido de PLANTILLA por completo. PRIMER INTENTO DE FIX
+     (revertido en la misma sesion): usar la UNION de clientes vistos en REPORTES+OSA+MINUTA
+     -- resulto ser DEMASIADO amplio, porque REPORTES/OSA son hojas "universo completo"
+     (157/1834 filas de TODOS los clientes historicos, no solo los de la semana activa) y
+     eso trajo 44 clientes y 1113 filas a PLANTILLA de golpe, incluyendo cuentas nunca
+     gestionadas por este pipeline. FIX DEFINITIVO: `clientes_foco` sigue siendo solo
+     MINUTA, MAS un set explicito `CLIENTES_EXTRA_SIN_MINUTA` que el usuario nombra cliente
+     por cliente cuando corresponde (hoy: MORETTA) -- el alcance semanal lo sigue
+     controlando el usuario mencionando el cliente, nunca se infiere solo.
+  2) CLIENTES_SOLO_OSA_REPORTES (nuevo set, hoy solo MORETTA): fuerza a ignorar cualquier
+     fila de MINUTA para ese cliente (INMOVILIZADO/NEGATIVO nunca aparecen en su mensaje),
+     aunque en el futuro llegue a tener datos en MINUTA -- es una regla de alcance del
+     cliente, no un efecto colateral de que hoy no haya datos.
+  3) BUG ADICIONAL encontrado al validar el fix anterior: la logica de "preservar filas de
+     clientes fuera de esta corrida" (v13) trataba CUALQUIER celda no-None en la columna
+     Marca como un cliente valido a preservar -- incluyendo filas viejas con el error
+     literal "#N/A" (residuo de un estado muy anterior de la hoja, mas alla del UsedRange
+     que las corridas normales escriben). Eso until ahora colaba filas basura de vuelta en
+     cada corrida. Fix: al preservar, exigir que Marca sea texto real, no vacio y que no
+     empiece con "#" (filtra "#N/A", "#REF!", etc.).
 """
 import datetime
 from collections import defaultdict
@@ -83,6 +131,14 @@ def get_accion(tipo, cliente):
     return ACCIONES_POR_CLIENTE.get(cliente, {}).get(tipo, ACCIONES[tipo])
 
 CLIENTES_SIN_REPORTES = {"CORRALES DEL SUR"}
+# sesion 32: clientes que solo se gestionan por OSA+REPORTES -- cualquier fila de MINUTA
+# para ellos se ignora (INMOVILIZADO/NEGATIVO nunca aparecen en su mensaje).
+CLIENTES_SOLO_OSA_REPORTES = {"MORETTA"}
+# sesion 32: clientes SIN datos en MINUTA que igual deben entrar a PLANTILLA esta corrida
+# (via REPORTES/OSA). El usuario los nombra explicitamente cada vez -- NO se infiere
+# automaticamente del universo completo de REPORTES/OSA (eso trajo 44 clientes de golpe
+# en el primer intento de este mismo fix, ver docstring arriba).
+CLIENTES_EXTRA_SIN_MINUTA = {"MORETTA"}
 CLIENTES_MENSAJE_GENERAL = {"CORRALES DEL SUR"}
 
 # sesion 24: umbrales de "stock significativo" para ponderar severidad (unidades)
@@ -238,13 +294,65 @@ def main():
                         return norm_code(int(resto))
             return s
 
+        # --- RUTA_RUTERO (Tabla7) -- sesion 30 (v13): fuente de Local/Gestor/Supervisor ---
+        # Universo completo de salas x cliente (no solo las que tienen foco esta semana).
+        # Se cruza por (CLIENTE, cadena, cod_local_norm) -- misma llave que usa `grupos` mas
+        # abajo -- para autocompletar PLANTILLA sin inventar nada: si una sala no aparece
+        # aqui, se intenta con el texto de Local/Gestor visto en REPORTES/OSA, y si tampoco
+        # hay, queda en blanco.
+        ruta_lookup = {}
+        try:
+            ws_ru = wb.Worksheets("RUTA_RUTERO")
+            lo7 = ws_ru.ListObjects("Tabla7")
+            names7 = [lo7.ListColumns(i).Name for i in range(1, lo7.ListColumns.Count + 1)]
+            idx7 = {n: i for i, n in enumerate(names7)}
+            n_ruta = 0
+            for r in lo7.DataBodyRange.Value:
+                cliente_ru = r[idx7["CLIENTE"]]
+                cod_kpi_ru = r[idx7["COD KPI ONE"]]
+                if not cliente_ru or not cod_kpi_ru:
+                    continue
+                cliente_ru = str(cliente_ru).strip()
+                cadena_ru = inferir_cadena(cod_kpi_ru) or (str(r[idx7["CADENA"]]).strip().upper() if r[idx7["CADENA"]] else None)
+                cod_local_ru = normalizar(cod_kpi_ru, cadena_ru) if cadena_ru else norm_code(cod_kpi_ru)
+                k = (cliente_ru, cadena_ru, cod_local_ru)
+                if k not in ruta_lookup:
+                    ruta_lookup[k] = {
+                        "local": r[idx7["LOCAL"]],
+                        "gestor": r[idx7["GESTORES"]],
+                        "supervisor": r[idx7["SUPERVISOR"]],
+                    }
+                    n_ruta += 1
+            log(f"RUTA_RUTERO: {n_ruta} salas indexadas para autocompletar Local/Gestor/Supervisor.")
+        except Exception as e:
+            log(f"Aviso: no se pudo leer RUTA_RUTERO/Tabla7 ({e}) -- Local/Gestor/Supervisor quedaran en blanco salvo respaldo de REPORTES/OSA.")
+
         # --- MINUTA (Tabla4) ---
         lo4 = ws_m.ListObjects("Tabla4")
         names4 = [lo4.ListColumns(i).Name for i in range(1, lo4.ListColumns.Count + 1)]
         idx4 = {n: i for i, n in enumerate(names4)}
         minuta_data = lo4.DataBodyRange.Value
-        clientes_foco = sorted({str(r[idx4["CLIENTE"]]).strip() for r in minuta_data if r[idx4["CLIENTE"]]})
-        log(f"Clientes en MINUTA (este archivo): {clientes_foco}")
+        clientes_minuta = {str(r[idx4["CLIENTE"]]).strip() for r in minuta_data if r[idx4["CLIENTE"]]}
+        log(f"Clientes en MINUTA (este archivo): {sorted(clientes_minuta)}")
+
+        # sesion 32: leer REPORTES/OSA ya aqui (una sola vez, se reutiliza mas abajo). OJO:
+        # REPORTES/OSA son hojas "universo completo" (todos los clientes historicos, no solo
+        # los de la semana activa) -- por eso `clientes_foco` NO es la union con TODO ese
+        # universo (eso trajo 44 clientes de golpe en un primer intento). Solo se agregan a
+        # MINUTA los clientes de CLIENTES_EXTRA_SIN_MINUTA, nombrados explicitamente por el
+        # usuario cuando corresponde (hoy: MORETTA, que no tiene ninguna fila en MINUTA).
+        lo1 = ws_r.ListObjects("Tabla1")
+        names1 = [lo1.ListColumns(i).Name for i in range(1, lo1.ListColumns.Count + 1)]
+        idx1 = {n: i for i, n in enumerate(names1)}
+        data1 = lo1.DataBodyRange.Value
+
+        lo3 = ws_o.ListObjects("Tabla3")
+        names3 = [lo3.ListColumns(i).Name for i in range(1, lo3.ListColumns.Count + 1)]
+        idx3 = {n: i for i, n in enumerate(names3)}
+        data3 = lo3.DataBodyRange.Value
+
+        clientes_foco = sorted(clientes_minuta | CLIENTES_EXTRA_SIN_MINUTA)
+        log(f"Clientes foco (MINUTA + CLIENTES_EXTRA_SIN_MINUTA): {clientes_foco}")
 
         minuta_rows = []
         for r in minuta_data:
@@ -252,6 +360,8 @@ def main():
             if not cliente:
                 continue
             cliente = str(cliente).strip()
+            if cliente in CLIENTES_SOLO_OSA_REPORTES:
+                continue  # sesion 32: este cliente se gestiona solo por OSA+REPORTES
             desc_prod = r[idx4["DESCRIPCION_PRODUCTO"]]
             if cliente.upper() == "TNOGAL" and es_libro(desc_prod):
                 continue
@@ -277,12 +387,9 @@ def main():
             })
         log(f"MINUTA filas utilizables (tras exclusion LIBRO/TNOGAL): {len(minuta_rows)}")
 
-        # --- REPORTES = CUMPLIMIENTO (Tabla1) ---
-        lo1 = ws_r.ListObjects("Tabla1")
-        names1 = [lo1.ListColumns(i).Name for i in range(1, lo1.ListColumns.Count + 1)]
-        idx1 = {n: i for i, n in enumerate(names1)}
+        # --- REPORTES = CUMPLIMIENTO (Tabla1, ya leida arriba como data1) ---
         visita0 = []
-        for r in lo1.DataBodyRange.Value:
+        for r in data1:
             cliente = r[idx1["CLIENTE"]]
             if not cliente or str(cliente).strip() not in clientes_foco:
                 continue
@@ -290,25 +397,24 @@ def main():
                 continue
             cod_kpi = r[idx1["COD KPI ONE"]]
             local = r[idx1["LOCAL"]]
+            gestor = r[idx1["GESTORES"]] if "GESTORES" in idx1 else None
             cadena = inferir_cadena(cod_kpi)
             cod_local_norm = normalizar(cod_kpi, cadena) if cadena else norm_code(cod_kpi)
             visita0.append({"cliente": str(cliente).strip(), "cadena": cadena,
-                             "cod_local_norm": cod_local_norm, "local_texto": local})
-        log(f"REPORTES/CUMPLIMIENTO filas (filtradas a clientes de MINUTA): {len(visita0)}")
+                             "cod_local_norm": cod_local_norm, "local_texto": local, "gestor_texto": gestor})
+        log(f"REPORTES/CUMPLIMIENTO filas (filtradas a clientes_foco): {len(visita0)}")
 
-        # --- OSA (Tabla3) ---
-        lo3 = ws_o.ListObjects("Tabla3")
-        names3 = [lo3.ListColumns(i).Name for i in range(1, lo3.ListColumns.Count + 1)]
-        idx3 = {n: i for i, n in enumerate(names3)}
+        # --- OSA (Tabla3, ya leida arriba como data3) ---
         c_total_name = names3[-1]  # 'Total general' es la ultima columna
         osa_rows = []
-        for r in lo3.DataBodyRange.Value:
+        for r in data3:
             cliente = r[idx3["CLIENTE"]]
             if not cliente or str(cliente).strip() not in clientes_foco:
                 continue
             cliente = str(cliente).strip()
             cod_kpi = r[idx3["COD KPI ONE"]]
             local = r[idx3["Local"]]
+            gestor = r[idx3["GESTORES"]] if "GESTORES" in idx3 else None
             producto = r[idx3["Producto"]]
             total = r[idx3[c_total_name]]
             if cliente.upper() == "TNOGAL" and es_libro(producto):
@@ -316,22 +422,31 @@ def main():
             cadena = inferir_cadena(cod_kpi)
             cod_local_norm = normalizar(cod_kpi, cadena) if cadena else norm_code(cod_kpi)
             osa_rows.append({"cliente": cliente, "cadena": cadena, "cod_local_norm": cod_local_norm,
-                              "local_texto": local, "producto": producto, "stock_total": total})
-        log(f"OSA filas (filtradas a clientes de MINUTA, tras exclusion LIBRO/TNOGAL): {len(osa_rows)}")
+                              "local_texto": local, "gestor_texto": gestor, "producto": producto, "stock_total": total})
+        log(f"OSA filas (filtradas a clientes_foco, tras exclusion LIBRO/TNOGAL): {len(osa_rows)}")
 
         # --- Consolidar por (cliente, cadena, cod_local_norm) ---
         # osa_productos: lista de (producto, stock) -- se usa tanto para el texto (solo nombre,
         # deduplicado) como para el Riesgo (peso por stock).
-        grupos = defaultdict(lambda: {"sin_visita": False, "osa_productos": [], "negativo": [], "inmov": []})
+        grupos = defaultdict(lambda: {"sin_visita": False, "osa_productos": [], "negativo": [], "inmov": [],
+                                       "local_fallback": None, "gestor_fallback": None})
         for v in visita0:
             k = (v["cliente"], v["cadena"], v["cod_local_norm"])
             grupos[k]["sin_visita"] = True
+            if not grupos[k]["local_fallback"] and v["local_texto"]:
+                grupos[k]["local_fallback"] = v["local_texto"]
+            if not grupos[k]["gestor_fallback"] and v["gestor_texto"]:
+                grupos[k]["gestor_fallback"] = v["gestor_texto"]
 
         for o in osa_rows:
             k = (o["cliente"], o["cadena"], o["cod_local_norm"])
             nombres_ya = [p for p, _s in grupos[k]["osa_productos"]]
             if o["producto"] not in nombres_ya:
                 grupos[k]["osa_productos"].append((o["producto"], o["stock_total"]))
+            if not grupos[k]["local_fallback"] and o["local_texto"]:
+                grupos[k]["local_fallback"] = o["local_texto"]
+            if not grupos[k]["gestor_fallback"] and o["gestor_texto"]:
+                grupos[k]["gestor_fallback"] = o["gestor_texto"]
 
         for m in minuta_rows:
             k = (m["cliente"], m["cadena"], m["cod_local_norm"])
@@ -364,7 +479,17 @@ def main():
             if not partes:
                 continue
             riesgo = calcular_riesgo(datos, cliente, cadena)
-            filas_finales.append((cliente, cadena, cod_local, " / ".join(partes), riesgo))
+
+            # sesion 30 (v13): resolver Local/Gestor/Supervisor -- prioridad RUTA_RUTERO,
+            # respaldo el texto visto en REPORTES/OSA para esa misma sala, si no hay nada
+            # se deja en blanco (nunca se inventa un valor).
+            info_ruta = ruta_lookup.get((cliente, cadena, cod_local), {})
+            local_final = info_ruta.get("local") or datos["local_fallback"]
+            gestor_final = info_ruta.get("gestor") or datos["gestor_fallback"]
+            supervisor_final = info_ruta.get("supervisor")
+
+            filas_finales.append((cliente, cadena, cod_local, local_final, gestor_final,
+                                   supervisor_final, " / ".join(partes), riesgo))
 
         log(f"TOTAL filas a escribir en PLANTILLA: {len(filas_finales)}")
         por_cliente = defaultdict(int)
@@ -381,19 +506,80 @@ def main():
             ws_p.Range("M1").Value = "Riesgo"
             log("PLANTILLA: columna M1='Riesgo' agregada.")
 
+        # sesion 30 (v13): "modelo eficiente" -- ya NO se limpia toda PLANTILLA. Se leen
+        # las filas existentes, se conservan tal cual las de clientes que NO estan en esta
+        # corrida (`clientes_foco`), y solo se reemplazan las de los clientes que si estan.
         last_row_p = ws_p.UsedRange.Rows.Count
+        filas_preservadas = []
+        if last_row_p > 1:
+            existentes = ws_p.Range(f"A2:M{last_row_p}").Value
+            if not isinstance(existentes, tuple) or (existentes and not isinstance(existentes[0], tuple)):
+                existentes = (existentes,)
+            for fila in existentes:
+                marca = fila[2]  # columna C = Marca (cliente)
+                if not isinstance(marca, str) or not marca.strip() or marca.strip().startswith("#"):
+                    continue  # vacio o error literal (#N/A, #REF!, etc.) -- nunca se preserva basura
+                marca = marca.strip()
+                if marca in clientes_foco:
+                    continue  # se reemplaza por la version nueva calculada en esta corrida
+                filas_preservadas.append(fila)
+        log(f"PLANTILLA: {len(filas_preservadas)} filas preservadas de clientes fuera de esta corrida "
+            f"(clientes_foco={sorted(clientes_foco)}).")
+
+        out_rows_nuevas = []
+        for cliente, cadena, cod_local, local_final, gestor_final, supervisor_final, observacion, riesgo in filas_finales:
+            out_rows_nuevas.append([semana_iso, hoy, cliente, cadena, cod_local, local_final,
+                                     gestor_final, supervisor_final, observacion, None, None, None, riesgo])
+
+        out_rows = list(filas_preservadas) + out_rows_nuevas
+        n = len(out_rows)
+
         if last_row_p > 1:
             ws_p.Range(f"A2:M{last_row_p}").ClearContents()
-            log(f"PLANTILLA: filas 2:{last_row_p} limpiadas.")
 
-        n = len(filas_finales)
+        # sesion 32: escribir FILA POR FILA (no un Range.Value multi-fila) -- con ~372 filas
+        # en una sola asignacion, o incluso en lotes de 25-50, aparecian filas corruptas
+        # (#N/A, en blanco, o con el contenido de OTRA fila del mismo cliente duplicado) en
+        # posiciones aleatorias del rango. Confirmado que los datos en Python eran correctos
+        # fila por fila justo antes de escribir -- el problema es de la marshalling COM de
+        # arrays 2D grandes en este entorno. Una asignacion de 1 fila x 13 columnas por vez
+        # es mas lenta pero elimina la ambiguedad del array 2D. Se agrega ademas una
+        # VERIFICACION posterior comparando la fila COMPLETA (no solo Marca, que no detectaba
+        # una fila con el contenido de OTRA fila del mismo cliente) y se re-escribe cualquier
+        # fila que no calce exactamente.
         if n > 0:
-            out_rows = []
-            for cliente, cadena, cod_local, observacion, riesgo in filas_finales:
-                out_rows.append([semana_iso, hoy, cliente, cadena, cod_local, None,
-                                  None, None, observacion, None, None, None, riesgo])
-            ws_p.Range(f"A2:M{1+n}").Value = out_rows
-            log(f"PLANTILLA: {n} filas escritas (A2:M{1+n}).")
+            for i, fila in enumerate(out_rows):
+                fila_excel = 2 + i
+                ws_p.Range(f"A{fila_excel}:M{fila_excel}").Value = fila
+
+            # --- verificacion + auto-reparacion (compara la fila completa) ---
+            releido = ws_p.Range(f"A2:M{1+n}").Value
+            if not isinstance(releido, tuple) or (releido and not isinstance(releido[0], tuple)):
+                releido = (releido,)
+            def _cmp(x):
+                # Excel guarda un texto numerico (ej. "613") como NUMERO al releerlo -- se
+                # normaliza a texto sin ".0" antes de comparar para no marcar falsos positivos.
+                if x is None:
+                    return None
+                if isinstance(x, float) and x.is_integer():
+                    return str(int(x))
+                return str(x).strip()
+
+            n_reparadas = 0
+            for i, (esperado, actual) in enumerate(zip(out_rows, releido)):
+                # comparar solo las columnas de texto/codigo (C a I: Marca..Observacion),
+                # ignorando Semana/Fecha (formato de tipo puede diferir levemente en la
+                # relectura, ej. datetime con tz) y Riesgo (float, comparacion redondeada).
+                cols_texto_iguales = all(_cmp(actual[j]) == _cmp(esperado[j]) for j in range(2, 9))
+                riesgo_igual = actual[12] is not None and abs(float(actual[12]) - float(esperado[12])) < 0.005
+                if not (cols_texto_iguales and riesgo_igual):
+                    fila_excel = 2 + i
+                    ws_p.Range(f"A{fila_excel}:M{fila_excel}").Value = esperado
+                    n_reparadas += 1
+            if n_reparadas:
+                log(f"PLANTILLA: {n_reparadas} filas llegaron corruptas de la escritura y se repararon individualmente.")
+        log(f"PLANTILLA: {len(filas_finales)} filas nuevas/actualizadas + {len(filas_preservadas)} preservadas "
+            f"= {n} filas totales escritas fila por fila (A2:M{1+n}).")
 
         log("Guardando (archivo liviano, sin formulas, sin recalculo)...")
         wb.Save()

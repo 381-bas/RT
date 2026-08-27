@@ -48,14 +48,14 @@
     "vigente_desde": "sesion 30 (2026-08-27), v13",
     "regla": "PLANTILLA se actualiza de forma INCREMENTAL, no con clear-total: en cada corrida se preservan intactas las filas de cualquier cliente que no este en `clientes_foco` (los clientes presentes en la MINUTA de esa corrida especifica), y solo se reemplazan las filas de los clientes que si estan. Esto permite ir cargando clientes de a uno (o los que el usuario indique en cada mensaje) sin perder el trabajo ya hecho de los demas -- incluida cualquier edicion manual en Estatus/Respuesta Supervisor/Fecha Respuesta de filas de clientes no tocados.",
     "fuente_de_autocompletado_Local_Gestor_Supervisor": "RUTA_RUTERO/Tabla7, cruzando por (CLIENTE, cadena, cod_local_norm). Respaldo: texto de Local/Gestor visto en la propia fila de REPORTES u OSA para esa sala. Si ninguna fuente tiene el dato, se deja en blanco -- nunca se inventa.",
-    "implementacion_vigente": "build_plantilla_v14.py (reemplaza v13)."
+    "implementacion_vigente": "build_plantilla.py (consolidado en sesion 33 -- el versionado ahora vive en git, no en el nombre del archivo)."
   },
 
   "regla_clientes_sin_MINUTA_o_solo_OSA_REPORTES": {
     "vigente_desde": "sesion 32 (2026-08-27), v14",
     "hallazgo": "`clientes_foco` se calculaba SOLO desde los clientes presentes en MINUTA -- un cliente con datos en REPORTES y/o OSA pero SIN ninguna fila en MINUTA (ej. MORETTA) quedaba excluido de PLANTILLA en silencio. IMPORTANTE: la union automatica con TODO el universo de REPORTES/OSA (que contienen TODOS los clientes historicos, no solo los de la semana activa) NO es la solucion -- se probo y trajo 44 clientes/1113 filas de golpe, muchas nunca gestionadas por este pipeline.",
     "regla": "`clientes_foco` = clientes en MINUTA + un set explicito `CLIENTES_EXTRA_SIN_MINUTA` que el usuario nombra cliente por cliente cuando corresponde (nunca se infiere solo desde el universo completo de REPORTES/OSA). Ademas existe `CLIENTES_SOLO_OSA_REPORTES`: para esos clientes se ignora cualquier fila de MINUTA (INMOVILIZADO/NEGATIVO nunca aparecen en su mensaje), sea porque hoy no tienen esos datos o porque el cliente se gestiona asi por diseno.",
-    "implementacion_vigente": "build_plantilla_v14.py."
+    "implementacion_vigente": "build_plantilla.py."
   },
 
   "regla_normalizacion_codigo_local": {

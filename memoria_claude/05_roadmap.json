@@ -81,6 +81,7 @@
   "horizontes": [
     {
       "id": "H1",
+      "estado": "EJECUTADO PARCIAL (sesion 33): esqueleto definido, README raiz documentado, BESHOS migrado como caso de prueba. Pendiente: TREBOL (activo, no migrado adrede), decidir esqueleto para F3 (centro de costo).",
       "nombre": "Estructura estandar de encargo (limpio vs trabajo)",
       "objetivo": "Que todo encargo de analisis -- sea un informe de rendimiento, un centro de costo mensual, o la minuta semanal -- nazca con la misma estructura, y que al terminar quede obvio cual es el archivo presentable y cual es la maquinaria.",
       "por_que_primero": "Es el pedido literal del usuario y ataca B1. No requiere git ni configuracion previa: es una convencion de carpetas que se puede adoptar hoy.",
@@ -105,6 +106,7 @@
     },
     {
       "id": "H2",
+      "estado": "EJECUTADO PARCIAL (sesion 33): repo local conectado a 381-bas/RT, historia reconciliada, .gitignore agresivo desde el primer commit, build_plantilla consolidado. Pendiente: push al remoto (requiere confirmacion del usuario -- publica contenido en repo publico), retomar issues/branches por encargo.",
       "nombre": "Reconectar el trabajo real con el repositorio que ya existe",
       "objetivo": "Que la carpeta local sea el repositorio 381-bas/RT, sin subir un solo byte de datos.",
       "por_que_asi": "No es 'empezar a usar git' -- el usuario ya lo usa y ya diseno bien la estructura (projects/hoffmann, issues por encargo, feature branches). El problema es que el trabajo diario ocurre fuera del repo. Esto es reconectar, no ensenar de cero.",
