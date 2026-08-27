@@ -1,0 +1,1186 @@
+{
+  "_proposito": "Memoria central persistente entre sesiones para el proyecto de trazabilidad de gestion en 02_MINUTAS_CLIENTES.xlsm. Actualizar este mismo archivo (no crear otros) al cierre de cada sesion relevante, agregando una entrada nueva en 'historial_sesiones' y ajustando las secciones vivas (hallazgos, decisiones_pendientes, proximos_pasos_sugeridos) segun lo avanzado.",
+  "version_memoria": 29,
+  "ultima_actualizacion": "2026-08-21",
+  "MODO_DE_TRABAJO_VIGENTE_sesion18": {
+    "_proposito": "LEER ESTO tras la arquitectura de dos archivos. Define el modo de trabajo activo desde sesion 18.",
+    "foco_actual": "Actualizar PLANTILLA (en el archivo RESULTADO liviano) cliente por cliente, a medida que el usuario vaya trayendo nuevos snapshots en MINUTA. NO se esta trabajando el checklist de limpieza del motor (sesion 16) por ahora -- el usuario avisara cuando quiera retomarlo.",
+    "practica_acordada": "Mientras se procesa cada cliente, si Claude nota un hallazgo/riesgo de calidad de datos (como el de este bloque), se registra en 'HALLAZGOS_OBSERVACIONES_PLANTILLA' (running log) en vez de detener el trabajo para corregirlo. Se corrige cuando el usuario lo pida explicitamente.",
+    "cadencia": "El usuario ira compartiendo nuevos clientes en MINUTA (via el archivo liviano) para que Claude corra build_plantilla_v4.py (o su evolucion) y actualice PLANTILLA.",
+    "clientes_procesados_historico": {
+      "MAILEMU_MIEL": "sesion 15 (26 filas), reconfirmado sesion 17 (formato v4) y sesion 19 (26 filas, sin cambios de fondo, coexistiendo con GRANA)",
+      "GRANA": "sesion 19 (25 filas) -- primera vez que se procesa este cliente con el pipeline nuevo. Nota: el JSON externo de ChatGPT (00_CONTEXTO_OPTIMIZACION_MINUTA.json) tenia una regla especial para GRANA ('blank_stock_means_zero': si Stock viene en blanco, usar STOCK:0) -- en la corrida de sesion 19 todos los valores de STOCK(Un) venian numericos, sin blancos, asi que esa regla no se probo todavia. Si en una futura corrida aparece un STOCK en blanco para GRANA, revisar que fmt_num()/el pipeline lo maneje como 0 y no como texto vacio o error.",
+      "CORRALES_DEL_SUR": "sesion 21 (55 filas) -- cliente con reglas ESPECIALES propias, ver 'REGLA_ESPECIAL_CORRALES_DEL_SUR_sesion21'. NO usa el pipeline generico de indicadores itemizados.",
+      "BESHOS": "sesion 22 (104 filas), 103 en sesion 24 tras refresco de datos -- cliente normal (pipeline generico), CENCOSUD+WALMART, 97 salas unicas.",
+      "BIGU": "sesion 24 (17 filas) -- cliente normal (pipeline generico), CENCOSUD+WALMART. Primer cliente con datos de venta (VTA_S-1/VTA_S-2) en MINUTA."
+    }
+  },
+  "NOTA_TECNICA_scratchpad_se_limpia_sesion24": "El directorio scratchpad (C:\\Users\\basti\\AppData\\Local\\Temp\\claude\\...\\scratchpad\\) se vacio entre la sesion 23 y la 24 (cambio de dia). Los scripts build_plantilla_v*.py vivian SOLO ahi, no en el proyecto -- se perdieron y hubo que reescribir v7 desde cero, consolidando toda la logica acumulada (v3 a v7) desde esta memoria. RESUELTO: se guardo una copia persistente en C:\\Users\\basti\\Desktop\\RT\\memoria_claude\\scripts\\build_plantilla_v7.py -- este SI sobrevive entre sesiones (vive en el proyecto, no en el temp). De ahora en adelante, cada vez que se genere una nueva version del script, copiarla tambien a memoria_claude\\scripts\\ para no depender del scratchpad efimero.",
+  "SCRIPT_VIGENTE": "C:\\Users\\basti\\Desktop\\RT\\memoria_claude\\scripts\\build_plantilla_v11.py (pipeline PLANTILLA) + build_observaciones.py (analisis de VENTAS/hallazgos, hoja OBSERVACIONES) -- ambos persistentes, sobreviven reinicios de sesion. Usar como punto de partida para cualquier ajuste futuro, copiando la version resultante de vuelta a esta misma carpeta.",
+  "BUG_NORMALIZACION_CODIGO_LOCAL_sesion28": {
+    "estado": "CORREGIDO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-21. Script: build_plantilla_v11.py (+ fix defensivo en build_observaciones.py, no disparado aun).",
+    "origen": "El usuario noto que en ALUSWEET aparecian codigos de local WALMART con prefijo EX/HI 'sin sufijo' (sin normalizar) y pidio revisar. Investigando se confirmaron DOS problemas encadenados, ambos exclusivos de ALUSWEET (verificado, ningun otro cliente afectado):",
+    "problema_1_dato_de_origen": "MINUTA.COD_LOCAL de ALUSWEET SI trae el prefijo de cadena (ej. 'EX142', 'HI58'), a diferencia de TODOS los clientes anteriores (BESHOS/BIGU/GRANA/MAILEMU/CORRALES DEL SUR/BERRYSUR) donde ese campo siempre llegaba ya numerico puro. El pipeline (build_plantilla) asumia que MINUTA.COD_LOCAL SIEMPRE viene limpio y nunca le aplicaba el 'quitar SUFIJO' de Tabla6 -- por eso esas filas quedaban en una clave de agrupacion DISTINTA a las de OSA/REPORTES/VENTAS (que SI se normalizan), partiendo una misma sala WALMART/TOTTUS/SMU en 2 filas separadas de PLANTILLA en vez de 1 sola. El usuario lo explico asi: 'solo en MINUTA hay que utilizar este cambio de SUFIJO, solo cuando la minuta no trae este dato correcto' -- es decir, aplicar la normalizacion tambien a MINUTA, pero de forma que sea un no-op cuando el dato ya viene limpio (que es el caso de todos los demas clientes).",
+    "fix_1": "En build_plantilla_v11.py: las filas de MINUTA ahora tambien pasan por normalizar(codigo, cadena) (la misma funcion que ya usaban OSA/REPORTES/VENTAS), usando la cadena ya determinada desde RETAIL. normalizar() es segura de aplicar siempre: si el codigo no matchea ningun prefijo de Tabla6, lo devuelve intacto -- por eso no rompe a los demas clientes.",
+    "problema_2_bug_de_Claude_encontrado_al_aplicar_el_fix_1": "Al aplicar el fix 1 aparecieron 57 filas DUPLICADAS nuevas (afectando TAMBIEN a BESHOS/GRANA, no solo ALUSWEET) -- causado por un bug real en la funcion normalizar(): hacia 's = str(codigo_crudo).strip()' ANTES de limpiar el tipo, asi que un codigo numerico limpio que llega como float de Excel (ej. 84.0) se convertia a texto '84.0' (con el '.0'!) en vez de pasar primero por norm_code() (que si sabe convertir float entero a int limpio). Esto rompia el calce con los codigos '84' (sin .0) que generaban OSA/REPORTES, duplicando esas salas tambien.",
+    "fix_2": "normalizar() ahora llama norm_code(codigo_crudo) COMO PRIMER PASO (antes de cualquier logica de prefijo), para que la limpieza de float-a-string ocurra correctamente sin importar si el codigo tiene prefijo o no. Aplicado en build_plantilla_v11.py Y de forma preventiva en build_observaciones.py (ahi no se habia disparado el bug porque VENTAS.COD_KPI_One siempre viene como texto con prefijo, nunca como float puro, pero se corrigio igual por consistencia).",
+    "resultado_final_verificado": {
+      "filas_totales": 340,
+      "por_cliente": {
+        "ALUSWEET": 69,
+        "BERRYSUR": 45,
+        "BESHOS": 103,
+        "GRANA": 25,
+        "MAILEMU MIEL": 26,
+        "BIGU": 17,
+        "CORRALES DEL SUR": 55
+      },
+      "verificacion": "0 duplicados, 0 residuos '.0' en Observacion, 0 filas ALUSWEET con Cadena vacia. Los demas clientes volvieron a sus conteos historicos correctos (los mismos que antes de este fix, confirmando que el bug 2 fue transitorio -- solo aparecio durante la corrida intermedia del fix 1 antes del fix 2, nunca llego a quedar guardado en un estado erroneo permanente)."
+    },
+    "leccion_general": "Cuando una funcion de normalizacion de codigos hace 'convertir a texto' antes de 'limpiar el tipo numerico', cualquier valor que llegue como float desde Excel/COM (que es el caso normal para cualquier columna numerica leida via .Value) pierde su limpieza y arrastra un '.0' silencioso que rompe cualces de claves de agrupacion. Regla para el futuro: SIEMPRE pasar valores crudos de Excel por norm_code() (o equivalente) ANTES de cualquier otra logica de texto (busqueda de prefijo, concatenacion, etc.), nunca despues."
+  },
+  "PROYECTO_ALUSWEET_sesion27": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-21.",
+    "contexto_estrategico": "ALUSWEET es 'cliente de peso' (venta y rotacion altas) con una capa de gestion NUEVA y mas profunda que el resto: ademas del pipeline operativo semanal (SEGUIMIENTO/OSA/NEGATIVO/INMOVILIZADO), el usuario agrego una hoja VENTAS (comparativo year-over-year por SKU/local) y pidio que Claude actue como analista: encontrar problematicas, generar ideas de indicadores, y dejar observaciones reutilizables para reuniones comerciales -- no solo para ALUSWEET, para cualquier cliente futuro.",
+    "vision_de_largo_plazo_declarada_por_el_usuario": "Se ira mezclando cada vez mas 'analisis duro': datos de venta diaria/semanal mas finos, listado de productos habilitados, para construir una proyeccion global con mas variables, hacia un modelo de MAXIMIZACION DE BENEFICIO. Tambien para el trabajo de PLANTILLA/minuta: la idea de fondo es seguir yendo hacia mensajes generales que 'abarquen' la sala completa, con palabras que dirijan claramente al supervisor a la situacion a corregir (misma linea que CORRALES DEL SUR y la consolidacion de INMOVILIZADO/OSA ya hecha).",
+    "hallazgo_critico_de_esta_sesion": "El comparativo YoY CRUDO (total 2025 vs total 2026) daba resultados falsos y alarmantes (WALMART -50.6%, TOTTUS -57.9%, TODAS las 60 salas WALMART en caida) porque 2025 representa 4 SEMANAS CERRADAS (mes completo) y 2026 solo 2 SEMANAS CERRADAS (mes en curso, confirmado por el usuario) -- periodos de distinto largo. Claude freno antes de escribir nada y pregunto explicitamente por esta comparabilidad antes de presentar el analisis, evitando entregar una conclusion falsa (que hubiera sido grave presentar en una reunion con el cliente). Correccion aplicada: normalizar a VENTA PROMEDIO SEMANAL (total / cantidad de semanas de cada año) antes de comparar. Con la correccion, el panorama cambia completamente: WALMART -1.3% (estable), TOTTUS -15.9% (caida real), CENCOSUD +22.2% (mejora), SMU +85.9% (mejora, base chica). Dentro de WALMART, 23 de 60 salas mejoran y 37 empeoran (el promedio esconde dispersion real).",
+    "IMPORTANTE_parametro_a_mantener": "SEMANAS_2026_CERRADAS = 2 (hoy). ES UN PARAMETRO QUE HAY QUE ACTUALIZAR CADA SEMANA que cierre una nueva antes de volver a correr build_observaciones.py -- esta en la parte superior del script, bien marcado. Si no se actualiza, los porcentajes de variacion quedan distorsionados otra vez.",
+    "bug_encontrado_y_corregido_de_paso": "Durante la calibracion se detecto que MINUTA.RETAIL para ALUSWEET tenia mayusculas inconsistentes ('Walmart'/'Tottus'/'Cencosud' en vez de 'WALMART'/'TOTTUS'/'CENCOSUD'), y como build_plantilla usaba ese valor CRUDO como cadena para las filas de MINUTA (en vez de inferirlo por prefijo como hacen REPORTES/OSA), esto partia una misma sala en 2 grupos distintos por diferencia de casing. Se confirmo que SOLO ALUSWEET estaba afectado (los 6 clientes previos ya tenian RETAIL en mayusculas consistentes, sus resultados historicos siguen validos). Fix aplicado en build_plantilla_v10.py: normalizar RETAIL con .strip().upper() antes de usarlo como cadena.",
+    "cambios_en_build_plantilla_v10": {
+      "fix_casing": "Ver bug arriba.",
+      "peso_por_cadena": "Nuevo mecanismo PESOS_CADENA_POR_CLIENTE + get_peso_cadena(cliente, cadena): multiplica el Riesgo final (ya calculado) por un factor si la cadena del cliente esta configurada, capado a 1.0. ALUSWEET: WALMART x1.3 (foco operativo del equipo, mas salas, mas medicion, restriccion explicita del usuario: 'nuestro esfuerzo va aca'). Las demas cadenas (TOTTUS/SMU/CENCOSUD) NO se excluyen de PLANTILLA, se siguen mostrando con su Riesgo normal (x1.0) -- decision confirmada por el usuario via pregunta.",
+      "resultado_verificado": "355 filas totales tras sumar ALUSWEET (84 filas: WALMART 37/TOTTUS 15/SMU 28/CENCOSUD 4), 0 duplicados, 0 filas con Cadena vacia. Riesgo promedio por cadena en ALUSWEET: WALMART=0.279, TOTTUS=0.243, SMU=0.198, CENCOSUD=0.203 -- WALMART lidera como se pedia."
+    },
+    "hoja_OBSERVACIONES_nueva": {
+      "proposito": "Tabla GENERICA y REUTILIZABLE (no exclusiva de ALUSWEET) para que Claude deje hallazgos de analisis de negocio -- columnas: Cliente | Fecha | Categoria | Observacion | Prioridad. Pensada para usar en reuniones comerciales.",
+      "comportamiento_de_actualizacion": "build_observaciones.py NO wipea toda la hoja en cada corrida -- solo reemplaza las filas del CLIENTE que se esta procesando en esa corrida, dejando intactas las filas de otros clientes ya analizados anteriormente. Asi se va acumulando un historico multi-cliente sin pisarse entre si.",
+      "categorias_usadas": [
+        "METODOLOGIA (como se calculo, para que quede auditable)",
+        "RENDIMIENTO_CADENA (rollup YoY por cadena)",
+        "VENTA_SALA_{CADENA_FOCO} (top peores salas de la cadena foco, hoy top 10 WALMART)",
+        "PRODUCTO_INHABILITADO (resumen + top 5 casos individuales)",
+        "SUGERENCIA_INDICADOR (ideas de Claude para mejorar el analisis)"
+      ],
+      "contenido_ALUSWEET_sesion27": "25 filas: 1 metodologia, 5 rendimiento por cadena, 10 peores salas WALMART, 6 producto inhabilitado (1 resumen + 5 casos), 3 sugerencias de indicador nuevo."
+    },
+    "ideas_de_indicadores_sugeridas_por_Claude": [
+      "Indice de dispersion de desempeno por cadena (% de salas en caida vs mejora, no solo el promedio).",
+      "Cobertura de catalogo activo (tendencia de SKU que se van cayendo a venta cero, no solo la foto puntual de 'inhabilitados').",
+      "Tendencia semana a semana DENTRO del año actual (no solo YoY) -- detectar aceleracion/desaceleracion antes de que cierre el mes."
+    ]
+  },
+  "BERRYSUR_sesion26": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-20. Script: build_plantilla_v9.py.",
+    "contexto_del_cliente": "BERRYSUR es una cuenta de producto de BAJA ROTACION por naturaleza: 85 de 89 filas en MINUTA (95%) son INMOVILIZADO, hasta 5 combinaciones en una sola sala. OSA solo tiene 17 filas -- comparativamente raro, y por eso mas significativo cuando aparece. El usuario pidio dar mas peso operativo a OSA (el foco real de gestion) y menos a INMOVILIZADO (casi siempre presente, poco diferenciador para esta cuenta).",
+    "cambio_1_consolidacion_INMOVILIZADO": {
+      "alcance": "GENERAL, aplica a TODOS los clientes (mismo criterio que OSA desde sesion 17), no solo BERRYSUR -- decision de Claude por consistencia, ya que el mismo problema de mensajes largos aplica a cualquier cliente con muchas combinaciones.",
+      "formato_nuevo": "INMOVILIZADO | {sku1} {producto1}, {sku2} {producto2}, ... | {accion} -- ya NO es 1 linea por producto, se consolidan todos los pares SKU+Producto de la sala en una sola linea, sin STOCK individual (mismo estilo que la consolidacion de OSA).",
+      "formato_anterior": "1 linea por producto: 'INMOVILIZADO | SKU: X | Producto | STOCK: Y | accion.' (se mantiene para STOCK NEGATIVO, que NO se toco)."
+    },
+    "cambio_2_pesos_por_cliente_en_Riesgo": {
+      "mecanismo": "PESOS_POR_CLIENTE (nuevo dict) + get_pesos(cliente): permite escalar la influencia relativa de cada tipo de indicador (SEGUIMIENTO/OSA/STOCK NEGATIVO/INMOVILIZADO) en el calculo de Riesgo, por cliente. Default: todos pesan 1.0 (igual que antes) para cualquier cliente sin entrada especifica.",
+      "BERRYSUR_pesos": {
+        "OSA": 1.5,
+        "INMOVILIZADO": 0.5
+      },
+      "formula_actualizada": "tipos y focos ahora escalan cada componente por su peso de cliente antes de sumar; el denominador 'max_tipos' de la parte de tipos se recalcula como suma de los pesos vigentes (en vez de la constante 4), para que Riesgo siga acotado a [0,1] sea cual sea la combinacion de pesos.",
+      "resultado_verificado": "Las salas de BERRYSUR con OSA quedaron claramente arriba en el ranking de Riesgo (0.75, 0.55, 0.49, 0.47...) mientras que las de solo INMOVILIZADO quedaron mucho mas abajo (0.06 a 0.31) -- confirma que el peso operativo se traslado correctamente a OSA."
+    },
+    "resultado_corrida": {
+      "total_filas": 271,
+      "por_cliente": {
+        "BERRYSUR": 45,
+        "BESHOS": 103,
+        "GRANA": 25,
+        "MAILEMU MIEL": 26,
+        "BIGU": 17,
+        "CORRALES DEL SUR": 55
+      },
+      "verificacion": "0 duplicados."
+    },
+    "hallazgo_pendiente_AR10": {
+      "descripcion": "1 fila de BERRYSUR (REPORTES) tiene codigo 'AR10', local 'STOP LOS TRAPENSES' -- el prefijo 'AR' NO esta definido en Tabla6 (que solo tiene EX/HI=WALMART, J/N=CENCOSUD, TT=TOTTUS, AL/UN=SMU). Como MINUTA de BERRYSUR solo trae CENCOSUD, este local no tiene contraparte en MINUTA/OSA, asi que la fila SI se genero bien (SEGUIMIENTO), pero con la columna Cadena en blanco (no se pudo inferir).",
+      "impacto": "Bajo -- 1 fila de 271, no rompe nada, solo queda con Cadena vacia en vez de mostrar la cadena real.",
+      "pendiente": "Confirmar con el usuario a que cadena/formato corresponde el prefijo 'AR' (¿otro retailer? ¿un formato especial de BERRYSUR?) para sumarlo a Tabla6 si corresponde."
+    }
+  },
+  "TEXTO_INMOVILIZADO_RENOVADO_sesion25": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-20. Script: build_plantilla_v8.py.",
+    "motivo": "El usuario reporto resistencia real del equipo de supervisores/gestores con el texto anterior ('Buscar oportunidad de obtener mas caras por venta lenta...'): si el producto no vende, pedir 'vender mas' no es una accion clara ni ejecutable -- genera friccion humana, no gestion. El foco correcto es la EXHIBICION/LAYOUT (algo que el supervisor SI puede accionar en la sala), no el volumen de venta (que no depende de el).",
+    "texto_nuevo_default": "'Ajustar layout de sala y buscar oportunidades de mejora en exhibición.' -- reemplaza el texto anterior para TODOS los clientes salvo que se defina una excepcion especifica.",
+    "infraestructura_nueva": "Se agrego ACCIONES_POR_CLIENTE (dict vacio por ahora) + funcion get_accion(tipo, cliente) en el script: permite definir mensajes de accion personalizados por cliente y tipo de indicador (ej. ACCIONES_POR_CLIENTE['BIGU']['INMOVILIZADO']='texto especifico'), cayendo al default compartido si el cliente no tiene override. Pedido explicito del usuario: 'la idea es igual buscar mensajes personalizados según el cliente'.",
+    "resultado": "226 filas (sin cambio de conteo, solo de texto), 0 duplicados, 0 con el texto viejo, 65 filas con el texto nuevo."
+  },
+  "ESPECIFICACIONES_CLIENTE_BIGU_sesion25": {
+    "fuente": "Material de capacitacion compartido por el usuario (imagenes), autoria: Nathalia Pacheco / Capacitadora.",
+    "descripcion_marca": "Bigu es una marca de rollos de fruta y vegetales, se encuentra en la categoria 'mundo bio'.",
+    "variedades_y_agrupacion_obligatoria_en_pareja": [
+      "BETARRAGA - FRUTILLA",
+      "ZANAHORIA - MANGO",
+      "ZAPALLO - PIÑA",
+      "ESPINACA - MANZANA"
+    ],
+    "logica_de_disposicion": "Separar VEGETALES de FRUTAS para logica visual y de consumo. Vegetales agrupados por tipo/color para facilitar identificacion del cliente; frutas al lado opuesto para destacar variedad y equilibrar la exhibicion. Esta separacion da claridad en el orden de reposicion, evita confusion con flejes, y mejora la presentacion general del lineal, alineado con los estandares de la marca.",
+    "opciones_de_layout_segun_espacio_asignado": [
+      "4 bandejas, varias caras -- todas las variedades visibles, multiples unidades por variedad por bandeja (2 variedades por bandeja, en pareja).",
+      "4 bandejas, 1 cara por variedad -- 1 unidad de cada variedad, distribuidas en 4 bandejas (2 variedades por bandeja).",
+      "2 bandejas, 1 cara por variedad -- las 8 variedades comprimidas en solo 2 bandejas (4 variedades por bandeja)."
+    ],
+    "empaque": "Cajas de embalaje identificadas con codigo de local (ej. 'J592' visto en una caja de ejemplo) ademas del logo Bigu.",
+    "uso_previsto": "Referencia para PERSONALIZAR a futuro el mensaje de INMOVILIZADO/OSA de BIGU en ACCIONES_POR_CLIENTE (ej. citar la agrupacion por pareja de variedades o el estandar de layout), si el usuario lo pide. Por ahora NO se inyecto en la Observacion (se mantiene corta, texto generico nuevo 'Ajustar layout de sala...'), solo queda guardado como contexto de marca."
+  },
+  "COLUMNA_RIESGO_sesion22": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-19. Script: build_plantilla_v6.py. Columna nueva 'Riesgo' agregada como columna M de PLANTILLA (al final, despues de Fecha Respuesta).",
+    "proposito": "Cuantificar que tan urgente/combinada es la situacion de cada sala, para que el usuario pueda ORDENAR/PRIORIZAR PLANTILLA por riesgo en vez de leer todas las Observaciones por igual.",
+    "historial_de_la_decision": "Primera propuesta de Claude excluia INMOVILIZADO del calculo (asumiendo, por error de interpretacion, que 'inmovilizado siempre es 0' referia al PESO en la formula de riesgo). El usuario aclaro: 'inmovilizado siempre 0' se referia a que el indicador MISMO mide 'ventas=0 en las ultimas semanas' (esa es su definicion), NO que deba pesar cero en el riesgo -- al contrario, cuando INMOVILIZADO coincide con OSA/NEGATIVO en la misma sala es MAS relevante, no menos, porque confirma que el problema de exhibicion/stock esta afectando la venta real. Formula corregida para incluir los 4 indicadores.",
+    "formula_final": {
+      "tipos": "Cuenta cuantos de los 4 indicadores (SEGUIMIENTO, OSA, STOCK NEGATIVO, INMOVILIZADO) estan presentes en la sala, 0 a 4 -- IMPORTANTE: se cuenta el dato REAL/subyacente, no solo lo que queda visible en el texto (ej. si OSA suprime INMOVILIZADO del texto visible, INMOVILIZADO igual cuenta aqui si existia).",
+      "focos": "SEGUIMIENTO(1 si aplica) + cantidad de productos distintos en OSA + cantidad de lineas NEGATIVO + cantidad de lineas INMOVILIZADO (todas las combinaciones reales, visibles o no en el texto).",
+      "formula": "Riesgo = round(0.5*(tipos/4) + 0.5*(min(focos,6)/6), 2)",
+      "rango": "0.00 (teorico, sala sin ningun indicador -- en la practica no aparece porque esas salas no generan fila) a 1.00 (los 4 tipos presentes y 6+ focos combinados)."
+    },
+    "aplica_a_TODOS_los_clientes": "Incluye a CORRALES DEL SUR (regla especial de mensaje generico) -- el Riesgo se calcula sobre los CONTEOS REALES subyacentes (osa_productos, negativo, inmov) aunque el texto visible sea 'REVISION GENERAL' generico. Confirmado en la corrida real: CORRALES DEL SUR encabezo el ranking de riesgo (0.88) pese a tener el texto mas generico de todos -- el Riesgo SI diferencia internamente aunque el texto no lo muestre.",
+    "resultado_corrida_sesion22": {
+      "clientes_incluidos": [
+        "BESHOS (104 filas, nuevo)",
+        "GRANA (25)",
+        "MAILEMU MIEL (26)",
+        "CORRALES DEL SUR (55)"
+      ],
+      "total_filas": 210,
+      "riesgo_rango_observado": "0.21 a 0.88",
+      "riesgo_minimo_practico": "0.21 -- corresponde a 1 solo tipo de indicador con 1 solo foco (ej. SEGUIMIENTO solo, o INMOVILIZADO solo). Ya no da 0.00 exacto salvo el caso teorico sin ningun indicador (que no genera fila).",
+      "verificacion": "0 duplicados, 0 valores de Riesgo nulos/error, distribucion coherente con la severidad real de cada sala."
+    }
+  },
+  "MEJORA_PENDIENTE_RIESGO_NIVEL_DE_STOCK_sesion23": {
+    "estado": "DISENADO, NO EJECUTADO -- pendiente de que el usuario traiga el dato de venta a MINUTA.",
+    "hallazgo_del_usuario": "El Riesgo actual (sesion 22) mide CUANTOS indicadores coinciden, pero no la MAGNITUD de cada uno. El usuario señalo un caso real importante: OSA+INMOVILIZADO con stock MUY BAJO (ej. 4 unidades) probablemente sea un desajuste de inventario (fisico vs B2B), no un foco real de gestion -- mientras que OSA+INMOVILIZADO con stock ALTO si es capital muerto real y merece maxima prioridad. La interpretacion del stock depende del nivel de venta normal de cada sala (una sala de alta rotacion vs baja rotacion interpreta '4 unidades' de forma opuesta).",
+    "bloqueo_actual": "MINUTA solo trae STOCK(Un) actual y las banderas booleanas (QUIEBRES/INMOVILZIADO/NEGATIVO) -- NO trae el dato de venta que el informe comercial origen uso para calcular esas banderas. Sin ese dato, cualquier umbral de 'stock bajo/alto' seria arbitrario.",
+    "confirmado_por_el_usuario": "SI existe un dato de venta promedio/venta de las ultimas semanas en el informe comercial fuente -- falta que el usuario lo traiga a MINUTA como columna nueva (nombre/formato exacto aun por confirmar, propuesto: VENTA_PROM_2SEM) y confirme si aplica a todos los clientes o solo algunos.",
+    "diseno_propuesto": {
+      "cobertura_semanas": "Para SKUs CON venta (no INMOVILIZADO): Cobertura = STOCK / VENTA_PROM_2SEM -- cobertura baja = riesgo de quiebre pronto (hoy no se usa activamente porque QUIEBRES esta omitido de PLANTILLA, pero quedaria disponible si se retoma).",
+      "severidad_inmovilizado": "Para SKUs SIN venta (INMOVILIZADO, venta=0, cobertura indefinida): usar el STOCK mismo como señal, pero en sentido directo (no inverso): STOCK ALTO + venta cero = mas grave (capital muerto real); STOCK MUY BAJO + venta cero = probable desajuste fisico-vs-B2B, riesgo bajo, no foco real de gestion.",
+      "integracion_con_Riesgo_existente": "Se propone agregar un tercer componente a calcular_riesgo() (ademas de 'tipos' y 'focos'): un factor de magnitud de stock, calibrado con datos reales una vez el usuario traiga VENTA_PROM_2SEM -- mismo proceso de validacion con ejemplos reales que se uso para la formula original (sesion 22)."
+    },
+    "siguiente_paso": "RESUELTO en sesion 24 -- ver 'COLUMNA_RIESGO_v2_PONDERADA_POR_STOCK_sesion24'."
+  },
+  "COLUMNA_RIESGO_v2_PONDERADA_POR_STOCK_sesion24": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-20. Script: build_plantilla_v7.py (reescrito desde cero porque el scratchpad de sesiones anteriores se limpio -- consolida v3 a v6 completas mas esta mejora).",
+    "contexto": "El usuario actualizo MOTOR (corte a las 17:00 del dia 18 para revisar rezagos, mas dia 19 cerrado) y el archivo LIVIANO con esos periodos, sumando cliente nuevo BIGU y 2 columnas nuevas a MINUTA: VTA_S-1 y VTA_S-2 (venta semana -1 y semana -2, separadas). Confirmado con datos reales de BIGU: INMOVILIZADO SIEMPRE tiene VTA_S-1=0 y VTA_S-2=0 (tautologico, es su definicion) -- por lo tanto el dato de venta NO aporta calibracion para el caso INMOVILIZADO especificamente. Lo que SI aporta es el STOCK mismo (ya disponible sin necesitar venta), y el mismo criterio se extendio a OSA usando STOCK_B2B (columna 'Total general' del panel OSA, que antes se descartaba al armar la linea consolidada).",
+    "formula_final": {
+      "peso_stock(stock, umbral)": "min(1, max(0,stock)/umbral) -- funcion continua 0 a 1, no binaria. UMBRAL_STOCK_OSA=15, UMBRAL_STOCK_INMOV=15 (calibrado con el ejemplo del usuario: 4 unidades = probable ruido/desajuste fisico-vs-B2B, debe pesar poco).",
+      "tipos": "peso_seguimiento(0/1) + osa_presente(0/1) + peso_negativo(0/1) + inmov_severidad(MAX de los pesos_stock de las lineas INMOVILIZADO de esa sala, 0 a 1 continuo)",
+      "focos": "peso_seguimiento(0/1) + SUMA de pesos_stock de cada producto OSA + cantidad de lineas NEGATIVO (sin ponderar) + SUMA de pesos_stock de cada linea INMOVILIZADO",
+      "riesgo": "round(0.5*(tipos/4) + 0.5*(min(focos,6)/6), 2)",
+      "NEGATIVO_sin_ponderar": "Decision deliberada: cualquier stock negativo YA es una anomalia real en si misma (no es cuestion de magnitud, un local con -1 o con -50 ambos requieren ajuste), asi que NEGATIVO se mantiene con conteo plano (1 por linea), no se pondera por magnitud."
+    },
+    "aplica_a_TODOS_los_clientes": "Se recalculo Riesgo para los 5 clientes (BESHOS, BIGU, CORRALES DEL SUR, GRANA, MAILEMU MIEL) en la misma corrida -- el peso por stock solo necesita STOCK(Un) de MINUTA y 'Total general' de OSA, ambos ya disponibles para todos los clientes (no dependia de que existiera VTA_S-1/S-2, que por ahora solo trae BIGU).",
+    "resultado_verificado": {
+      "total_filas": 226,
+      "por_cliente": {
+        "BESHOS": 103,
+        "GRANA": 25,
+        "MAILEMU MIEL": 26,
+        "BIGU": 17,
+        "CORRALES DEL SUR": 55
+      },
+      "riesgo_rango": "0.10 a 0.88",
+      "caso_de_prueba_clave": "BIGU WALMART/993: INMOVILIZADO con stock=7 (bajo) -> Riesgo=0.10, el MAS BAJO de todo BIGU. BIGU WALMART/48 y /72: INMOVILIZADO con stock=96/98 (alto) -> Riesgo=0.29 (mayor, dentro del rango de indicador unico). Confirma que la ponderacion por stock funciona segun lo esperado por el usuario.",
+      "verificacion_tecnica": "0 duplicados, 0 valores Riesgo nulos/error."
+    },
+    "pendiente_futuro": "VTA_S-1/VTA_S-2 (venta real) sigue disponible para uso futuro si se retoma QUIEBRES (hoy omitido de PLANTILLA) o si se quiere una metrica de 'cobertura' (stock/venta) para SKUs con venta activa -- no se uso en esta iteracion porque para INMOVILIZADO (el caso que motivo el pedido) la venta es siempre 0 y no aporta. El usuario menciono tambien que el criterio de QUIEBRES en la fuente 'apalanca la venta de mayor rendimiento salvo que pase un limite ponderado' -- contexto anotado, no se proceso porque QUIEBRES sigue omitido de PLANTILLA."
+  },
+  "REGLA_ESPECIAL_CORRALES_DEL_SUR_sesion21": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-19. Script: build_plantilla_v5.py.",
+    "por_que_es_especial": "CORRALES DEL SUR tiene solo 55 salas (todas WALMART) pero 405 combinaciones sala+producto en MINUTA (397 INMOVILIZADO, 8 NEGATIVO, 0 QUIEBRES) y 217 en OSA -- un promedio de ~7-8 productos por sala. Itemizar cada producto (como se hace para el resto de clientes) generaria observaciones inmanejables. El usuario pidio explicitamente un tratamiento distinto SOLO para este cliente.",
+    "reglas": [
+      "1) NO se genera linea SEGUIMIENTO/incumplimiento para este cliente -- REPORTES queda excluido por completo (CLIENTES_SIN_REPORTES en el script).",
+      "2) OSA + STOCK NEGATIVO + INMOVILIZADO se tratan como UNA SOLA condicion (el usuario las considero equivalentes: 'ajustes de inventario e inmovilizado son la misma condicion'). Si la sala tiene CUALQUIERA de los 3, se genera 1 SOLA linea generica, sin detalle de producto/SKU/stock (CLIENTES_MENSAJE_GENERAL en el script).",
+      "3) Texto fijo: 'REVISION GENERAL | Realizar barrido general de la sala: ajustar inventario y verificar exhibición de productos.' -- objetivo: que el supervisor haga un barrido completo de la sala en vez de perseguir SKU especificos.",
+      "4) Si una sala no tiene NINGUNO de los 3 indicadores (ej. solo tuviera QUIEBRES, que se omite igual que para todos los clientes), no se genera fila -- mismo criterio que el resto."
+    ],
+    "implementacion_tecnica": "En build_plantilla_v5.py: CLIENTES_SIN_REPORTES y CLIENTES_MENSAJE_GENERAL son sets de nombres de cliente (hoy solo {'CORRALES DEL SUR'} en ambos) que activan ramas de codigo especiales dentro del loop de construccion de filas_finales. Los demas clientes (GRANA, MAILEMU MIEL, y cualquier futuro) siguen el pipeline generico sin cambios. Extensible: agregar mas nombres a esos sets si otro cliente necesita el mismo tratamiento.",
+    "resultado": {
+      "filas_CORRALES_DEL_SUR": 55,
+      "coincide_con_salas_unicas": true,
+      "verificacion": "0 filas con SEGUIMIENTO, 55/55 con 'REVISION GENERAL', 0 duplicados. GRANA (25) y MAILEMU MIEL (26) sin cambios -- confirma que la regla especial no afecto el pipeline generico de otros clientes."
+    }
+  },
+  "HALLAZGOS_OBSERVACIONES_PLANTILLA": [
+    {
+      "fecha": "2026-08-19",
+      "hallazgo": "RATIONALE de negocio detras de la regla 'OSA predomina, INMOVILIZADO queda fuera' (confirmada por el usuario, ya implementada desde build_plantilla_v4.py): INMOVILIZADO mide venta CERO en las ultimas 2 semanas -- un sintoma de velocidad de venta. OSA mide disponibilidad en gondola -- si el producto no esta bien exhibido, es esperable que no se venda. Es decir, OSA suele ser la CAUSA RAIZ y INMOVILIZADO el SINTOMA para la misma sala: no son 2 problemas independientes, uno explica al otro. Por eso el foco de gestion se pone en resolver OSA primero (causa), no en reportar ambos como si fueran focos separados -- si se corrige la exhibicion, es esperable que el sintoma de venta cero se resuelva solo. Esta es la justificacion de negocio de por que la supresion es a nivel de SALA completa y no requiere que el producto coincida exactamente entre OSA y MINUTA.",
+      "alcance": "Aplica a todos los clientes, es una regla de negocio general, no un hallazgo tecnico a corregir.",
+      "accion": "Ninguna -- ya implementado correctamente en sesion 17. Este bloque solo documenta el 'por que' para que quede claro en futuras sesiones."
+    },
+    {
+      "fecha": "2026-08-19",
+      "hallazgo": "El cruce OSA<->MINUTA para el indicador INMOVILIZADO (y en general, cualquier deduplicacion/consolidacion de productos dentro de la linea de OSA) se hace SOLO por texto de nombre de producto, no por un codigo de SKU real -- el panel OSA no trae SKU de producto (su 'Codigo' es el codigo del LOCAL, ver sesion 6). Riesgo doble: (a) dos productos DISTINTOS con nombre parecido podrian tratarse como el mismo (falso positivo al deduplicar o al suprimir INMOVILIZADO), (b) el MISMO producto con la descripcion escrita distinto entre OSA y MINUTA podria no reconocerse como igual (falso negativo, no se deduplica cuando deberia).",
+      "alcance": "Aplica a TODOS los clientes que se procesen con el pipeline actual (build_plantilla_v4.py), no es especifico de MAILEMU MIEL.",
+      "decision_del_usuario": "Dejarlo como precaucion activa, NO corregir ahora. Seguir avanzando con la actualizacion de PLANTILLA por cliente; retomar este tema cuando se aborde el checklist de limpieza pendiente.",
+      "posible_solucion_futura": "Si en algun momento se consigue un codigo de SKU real en el panel OSA (o una tabla puente tipo MAESTRA que mapee nombre de producto -> SKU por cliente), reemplazar el matching por texto con matching por codigo."
+    }
+  ],
+  "ARQUITECTURA_DE_DOS_ARCHIVOS_VIGENTE_desde_sesion15": {
+    "_proposito": "LEER ESTO PRIMERO en cualquier sesion nueva. Confirmado explicitamente por el usuario en sesion 15 como la forma de trabajo DE AHORA EN ADELANTE (no es un experimento puntual).",
+    "motor_de_formulas_e_indicadores": {
+      "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_MINUTAS_CLIENTES.xlsm",
+      "rol": "Aqui viven REPORTES, OSA, RUTA_RUTERO, DINAMICA, MAESTRA y MINUTA, con TODAS las formulas e indicadores (VISITA_0, ALERTA_CRITICA, RESUELTO_SEM_ACTUAL, d1+/d2+, Tabla6, XLOOKUP de Gestor, etc.). Es donde se PIENSA y se CALCULA. Es pesado (~26MB y creciendo, OSA con 69k+ filas) -- por eso ya NO se debe forzar CalculateFullRebuild ni automatizaciones de escritura pesadas aqui salvo que sea estrictamente necesario y con mucho cuidado (backup, DispatchEx, medir tiempos). Automatizarlo por COM ya demostro poder crashear Excel (sesiones 6 y 14)."
+    },
+    "resultado_plantilla": {
+      "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_MINUTAS_CLIENTES_PLANTILLA.xlsm",
+      "rol": "El ENTREGABLE: snapshots livianos de solo-valores (REPORTES=ex-panel VISITA_0, OSA=ex-panel ALERTA_CRITICA, MINUTA+Tabla6) exportados desde el motor, mas la hoja PLANTILLA final -- 'los focos a trabajar durante la semana'. Sin formulas, ~110KB, rapido y seguro de automatizar. Aqui es donde Claude ejecuta el script de sintesis (build_plantilla_v3.py o su evolucion) para generar PLANTILLA."
+    },
+    "flujo_de_trabajo": [
+      "1) El usuario construye/ajusta formulas e indicadores en el MOTOR (02_MINUTAS_CLIENTES.xlsm).",
+      "2) El usuario (o Claude, si se pide) exporta/pega como VALORES un snapshot de las piezas relevantes (paneles de DINAMICA, MINUTA+Tabla6) hacia el archivo RESULTADO (02_MINUTAS_CLIENTES_PLANTILLA.xlsm).",
+      "3) Claude corre el script de sintesis SOLO contra el archivo RESULTADO (liviano, sin riesgo) para generar/actualizar PLANTILLA.",
+      "4) PLANTILLA en el archivo RESULTADO es el entregable de la semana."
+    ],
+    "pendiente_de_definir": "Como y cuando se hace el paso 2 (exportar snapshot del motor al resultado) de forma repetible -- hoy lo hizo el usuario manualmente una vez. Si se vuelve una tarea frecuente, valdria la pena automatizarla (o definir un proceso claro) para no depender de que el usuario lo rehaga a mano cada vez.",
+    "objetivo_sesion16_limpieza_del_motor": {
+      "estado": "DECLARADO POR EL USUARIO, NO EJECUTADO. Solo se propuso un checklist, sin empezar ninguna limpieza todavia -- a la espera de que el usuario priorice.",
+      "pedido": "Seguir trabajando en el MOTOR (02_MINUTAS_CLIENTES.xlsm) para dejar cada tabla lo mas limpia posible, de forma que cuando se llegue a la automatizacion sea mas simple (incluso para Claude) determinar como se arma cada PLANTILLA.",
+      "checklist_de_limpieza_pendiente_recopilado_por_Claude": [
+        {
+          "tabla": "OSA",
+          "item": "RECURRENCIA_SEMANA sin filtro de fecha real -- ahora que hay 2+ semanas mezcladas el nombre ya no refleja lo que calcula.",
+          "desde_sesion": 13
+        },
+        {
+          "tabla": "OSA",
+          "item": "Falta columna SEMANA_ISO (REPORTES si la tiene).",
+          "desde_sesion": 13
+        },
+        {
+          "tabla": "RUTA_RUTERO",
+          "item": "Typo 'RESULTO' -> deberia ser 'RESUELTO' en RESUELTO_SEM_ACTUAL.",
+          "desde_sesion": 10
+        },
+        {
+          "tabla": "RUTA_RUTERO",
+          "item": "Columna OSA sigue sumando TODO el historico de Tabla3[OSA] sin filtro de fecha -- el patron d1+/d2+ que se aplico a incumplimiento no se extendio al lado OSA.",
+          "desde_sesion": "1 y 10"
+        },
+        {
+          "tabla": "MINUTA",
+          "item": "Tabla6 se ha movido de posicion entre sesiones (N:Q -> P:S), rompio un script una vez -- conviene dejarla en posicion estable o al menos documentada.",
+          "desde_sesion": 15
+        }
+      ],
+      "siguiente_paso": "Esperando que el usuario priorice por cual tabla/item empezar, o pida un plan de menor a mayor como el de TRAZABILIDAD."
+    }
+  },
+  "REGLAS_OBSERVACION_PLANTILLA_sesion17_IMPLEMENTADAS": {
+    "estado": "EJECUTADO Y GUARDADO en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm. Fecha: 2026-08-19. Script: build_plantilla_v4.py.",
+    "reglas_formalizadas_por_el_usuario": [
+      "1) Prioridad de indicadores: SEGUIMIENTO (incumplimiento) > OSA > MINUTA.",
+      "2) Predominancia a nivel de SALA (no de SKU): si la sala tiene CUALQUIER linea de OSA, INMOVILIZADO se descarta COMPLETO para esa sala (mas fuerte que la regla anterior, que solo suprimia por coincidencia exacta de producto).",
+      "3) NEGATIVO es la excepcion: SIEMPRE se combina/muestra, nunca se suprime aunque haya OSA en la sala.",
+      "4) La linea de OSA ya NO lleva nombre de Local (el usuario lo agrega el mismo aparte) ni STOCK por producto -- se consolidan TODOS los productos de esa sala en UNA sola linea separados por coma, sin repetir nombres.",
+      "5) STOCK NEGATIVO e INMOVILIZADO se quedan con el formato de siempre (1 linea por producto, con SKU y STOCK) -- SOLO OSA cambio de formato, para acotar las observaciones largas sin perder detalle donde mas importa (ajustes de inventario)."
+    ],
+    "formato_final_OSA": "OSA | {Producto1}, {Producto2}, ... | Verificar visita y stock actualizado.",
+    "formato_sin_cambios_NEGATIVO_INMOV": "{INDICADOR} | SKU: {sku} | {producto} | STOCK: {stock} | {accion}",
+    "resultado": {
+      "filas": 26,
+      "duplicados": 0,
+      "ejemplo_supresion_sala": "CENCOSUD/J613 (MAILEMU MIEL): antes tenia OSA (producto 300G) + INMOVILIZADO (producto 550G, distinto SKU) en la misma sala. Con la regla nueva, INMOVILIZADO se descarta completo y solo queda la linea OSA -- confirma que la supresion es a nivel de SALA, no de producto.",
+      "ejemplo_consolidacion": "WALMART/8: 2 productos en OSA (MIEL BOSQUE NATIVO, MIEL ULMO) quedaron en UNA sola linea separados por coma, en vez de 2 lineas repetidas."
+    },
+    "gotcha_de_ejecucion_IMPORTANTE": "La PRIMERA corrida de build_plantilla_v4.py via 'run_in_background: true' escribio el resultado con el formato VIEJO (v3), a pesar de que el archivo .py en disco ya tenia el codigo nuevo verificado por grep/Read justo antes de ejecutar. Al volver a correr el MISMO script pero en PRIMER PLANO (sin backgrounding), el resultado fue el correcto. Causa exacta no confirmada (sospecha: algun tipo de copia/cache obsoleta del script al lanzar en background en este entorno). LECCION: despues de editar un script y ANTES de confiar en un resultado de una corrida en background, verificar el contenido REAL escrito en el archivo de Excel (no solo el log de la corrida) -- si algo se ve raro, no asumir que fue un problema de datos, reintentar en primer plano para descartar este tipo de anomalia de ejecucion."
+  },
+  "archivo_fuente": {
+    "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_MINUTAS_CLIENTES.xlsm",
+    "tipo": "Excel macro-enabled (.xlsm)",
+    "estado_modificacion": "NO MODIFICADO por Claude. Solo lectura hasta nueva indicacion explicita del usuario.",
+    "hojas": [
+      "REPORTES",
+      "DINAMICA",
+      "RUTA_RUTERO",
+      "OSA",
+      "MAESTRA"
+    ],
+    "tablas_excel_listobject": {
+      "Tabla1": "REPORTES (A1:T50594)",
+      "Tabla3": "OSA (A1:O51277)",
+      "Tabla4": "RUTA_RUTERO (A1:AM3943)",
+      "Tabla5": "MAESTRA (A1:H29448)"
+    }
+  },
+  "objetivo_usuario": {
+    "resumen": "Controlar y mejorar la trazabilidad semanal de gestion: reportes fotograficos (REPORTES), medicion de exhibicion por SKU (OSA), y cumplimiento de frecuencia de visita por local/marca (RUTA_RUTERO).",
+    "foco_critico": "Casos donde el sistema B2B indica que HAY stock pero la visita en terreno marca el producto como faltante/no exhibido (discrepancia tipo 'QUIEBRE (habia stock B2B)'). Tambien resolver que hacer cuando hay varios reportes/registros por semana para un mismo local+marca/SKU: si se debe tomar el que 'persiste' (se repite) o el ultimo generado cronologicamente.",
+    "restriccion_actual": "No modificar el archivo original todavia. Solo estudiar, documentar y proponer mejoras."
+  },
+  "estructura_hojas": {
+    "REPORTES (Tabla1)": {
+      "grano": "1 fila = 1 foto individual dentro de una visita/tarea. Varias filas comparten el mismo par (ID, SP Item ID) cuando pertenecen al mismo reporte.",
+      "columnas": [
+        "ID",
+        "SP Item ID",
+        "Holding",
+        "Subcadena",
+        "Codigo Local",
+        "Codigo Ruta",
+        "Ruta (detalle)",
+        "Marca",
+        "Local",
+        "Direccion",
+        "Reponedor",
+        "Fecha",
+        "Fecha de subida",
+        "Hora",
+        "Tipo de Tarea",
+        "Foto N/Total",
+        "Comentarios",
+        "Link Foto",
+        "ISO_SEMANA",
+        "VISITA"
+      ],
+      "tipo_de_tarea_valores": [
+        "Antes de reposicion",
+        "Despues de reposicion",
+        "Panoramica",
+        "Bodega",
+        "Carteleria",
+        "Merma"
+      ],
+      "formulas_clave": {
+        "ISO_SEMANA": "=_xlfn.ISOWEEKNUM(Tabla1[[#This Row],[Fecha]])",
+        "VISITA": "=1/COUNTIFS(Tabla1[Codigo Local],[Codigo Local],Tabla1[Marca],[Marca],Tabla1[Fecha],[Fecha])  -> reparte 1 'visita' entre TODAS las filas (fotos) que compartan Codigo Local+Marca+Fecha, sin importar si vienen de distintos ID de reporte. Esto YA neutraliza el caso de reportes duplicados el mismo dia para el mismo local+marca: la suma de VISITA para ese combo siempre da 1, aunque haya 2 o 3 IDs distintos ese dia."
+      },
+      "hallazgo_duplicados": "Se detectaron 125 combinaciones (Codigo Local + Marca + Fecha) con mas de un ID de reporte el mismo dia (ej: UN442+MORETTA+2026-08-15 tiene 3 IDs distintos). La formula VISITA ya evita que esto infle el conteo de visitas, PERO no hay logica que decida cual de los reportes es 'el valido' para fines de auditoria/calidad de foto (por ejemplo si uno tiene 7 fotos completas y otro solo 1 Panoramica tardia subida al dia siguiente). Pendiente de decidir con el usuario.",
+      "rango_fechas_datos_actuales": "2026-08-10 a 2026-08-16 (ISO semana 33, unica semana presente en la hoja al momento de esta revision).",
+      "nota_ventana_semanal": "La hoja REPORTES parece contener SOLO la semana vigente (no historico acumulado). Confirmar con el usuario si se limpia/reemplaza cada semana o si esto era la carga inicial."
+    },
+    "OSA (Tabla3)": {
+      "grano": "1 fila = 1 medicion de un SKU/Producto especifico en un Local especifico, durante una visita (Fecha).",
+      "columnas_actuales_2026-08-17_sesion2": [
+        "Encuesta",
+        "Producto",
+        "Marca/Campana",
+        "Reponedor",
+        "Local",
+        "Codigo",
+        "Respuesta",
+        "Stock B2B congelado",
+        "Fecha stock B2B",
+        "Discrepancia",
+        "Notas",
+        "Fecha",
+        "Hora",
+        "OSA",
+        "OSA_FOCO",
+        "STOCK_B2B2"
+      ],
+      "nota_cambio_estructura": "El usuario corrigio manualmente el archivo entre la sesion 1 y la sesion 2 (fuera de Claude, Claude no escribio nada): la columna que antes se llamaba 'STOCK_B2B' y contenia una hora por error de pegado fue renombrada a 'Hora' (su contenido real), y se agrego una columna nueva al final llamada 'STOCK_B2B2' con la formula correcta. Confirmar si 'STOCK_B2B2' es nombre definitivo o provisorio (se recomienda renombrar a 'STOCK_B2B' limpiamente y borrar el sufijo '2' cuando se ordene el archivo).",
+      "notas_columnas": {
+        "Respuesta": "'si' = exhibido/encontrado, 'no' = faltante/no exhibido (segun reponedor en terreno).",
+        "Stock B2B congelado": "Cantidad de stock segun sistema B2B al momento de congelar el dato, en unidad base (ej: 80000).",
+        "Fecha stock B2B": "Fecha en que se congelo ese dato de stock B2B (puede ser anterior a la visita, ej: 2026-06-01 vs visita 2026-08-10 -> stock B2B potencialmente desactualizado).",
+        "Discrepancia": "Columna de TEXTO (dato de entrada, no formula) ya calculada aguas arriba (app/fuente Retail Trust), valores observados: 'OK' (40876), 'QUIEBRE (habia stock B2B)' (4774) <- EL CASO DELICADO, 'OSA sin stock B2B' (501), vacio (5125).",
+        "Hora": "Hora de la visita/registro (antes mal nombrada 'STOCK_B2B' por error de pegado del usuario; ya corregido).",
+        "STOCK_B2B2": "PENDIENTE DE RENOMBRAR A 'STOCK_B2B' (decision tomada, ver decisiones_tomadas). Formula: =IFERROR([@[Stock B2B congelado]]/1000,0). Significado confirmado por el usuario: 'Stock B2B congelado' viene con un error de descarga de la fuente que siempre lo multiplica x1000; dividir por 1000 corrige el error y devuelve el stock real en UNIDADES (no son 'miles de unidades', es la correccion del bug). El usuario lo detecto porque el stock real rara vez supera 100 unidades por SKU/local, y los valores crudos (80000, 315000, 26000, etc.) eran evidentemente ese error x1000. Verificado en el archivo real el 2026-08-17."
+      },
+      "formulas_clave": {
+        "OSA": "=IF(Tabla3[[#This Row],[Discrepancia]]=\"OK\",1,0)",
+        "OSA_FOCO": "=IF(Tabla3[[#This Row],[OSA]]=0,Tabla3[[#This Row],[Discrepancia]],\"\")  -> deja visible el motivo (QUIEBRE.../OSA sin stock B2B) solo cuando OSA=0.",
+        "STOCK_B2B2": "=IFERROR(Tabla3[[#This Row],[Stock B2B congelado]]/1000,0)"
+      },
+      "caso_delicado_stock_vs_faltante": {
+        "definicion": "Cuando Respuesta='no' (no exhibido) pero Stock B2B congelado > 0 (el sistema dice que si habia stock), la fuente marca Discrepancia='QUIEBRE (habia stock B2B)'. Este es el caso mas sensible para el negocio: puede ser quiebre real en gondola, producto mal ubicado (ver columna Notas, ej. 'NO_UBICA'), o stock B2B desactualizado (ver Fecha stock B2B vs Fecha visita).",
+        "ejemplo_real_detectado": {
+          "Producto": "DONUT COB CHOCOLATE",
+          "Marca/Campana": "BREDEN MASTER",
+          "Local": "525 - EXPRESS PADRE HURTADO",
+          "Respuesta": "no",
+          "Stock B2B congelado": 80000,
+          "Fecha stock B2B": "2026-06-01",
+          "Fecha visita": "2026-08-10",
+          "Discrepancia": "QUIEBRE (habia stock B2B)",
+          "Notas": "NO_UBICA",
+          "comentario": "El stock B2B esta 'congelado' desde el 1 de junio, muy anterior a la visita del 10 de agosto -> posible dato de stock desactualizado, no necesariamente quiebre real."
+        },
+        "otro_valor_relacionado": "'OSA sin stock B2B' (501 casos): Respuesta='no' pero sin stock segun B2B -> quiebre esperado/coherente, NO es el caso delicado."
+      },
+      "hallazgo_multiples_registros_por_semana": "17.371 combinaciones (Codigo, Producto, Local) tienen MAS DE UN registro dentro de la misma semana (hasta 5, uno por dia de visita). Ejemplo: J775 + varios productos + JUMBO NUNOA con registros en 2026-08-10, 11, 12, 14, 15. HOY NO EXISTE una regla en el archivo que colapse esto a 'un solo estado por semana'. Este es el nucleo del pedido del usuario: decidir si se toma el ULTIMO registro (mas reciente) como estado vigente, o si se prioriza cuando el problema PERSISTE (se repite en visitas consecutivas) como senal de alerta mas grave que un quiebre puntual de un solo dia.",
+      "rango_fechas_datos_actuales": "2026-08-10 a 2026-08-15 (misma ventana que REPORTES, semana ISO 33)."
+    },
+    "RUTA_RUTERO (Tabla4)": {
+      "grano": "1 fila = 1 combinacion Local + Marca/Cliente que debe visitarse segun ruta/frecuencia contratada. 3943 filas = tamano de la muestra del proyecto.",
+      "columnas_relevantes": [
+        "CADENA",
+        "FORMATO",
+        "REGION",
+        "COMUNA",
+        "COD KPI ONE",
+        "COD B2B",
+        "LOCAL",
+        "VECES POR SEMANA",
+        "RUTERO",
+        "GESTORES",
+        "CLIENTE (=Marca)",
+        "SUPERVISOR",
+        "REPONEDOR",
+        "LUNES..DOMINGO (dias objetivo)",
+        "Visita mensual",
+        "MODALIDAD",
+        "d1..d7",
+        "TOTAL",
+        "DELTA",
+        "FALTANTE",
+        "VISITA_0",
+        "OSA",
+        "Fecha (AQ, array dinamico)"
+      ],
+      "mecanica_ventana_semanal": {
+        "AQ1": "=_xlfn._xlws.SORT(_xlfn.UNIQUE(Tabla1[[#All],[Fecha]]),1,-1) -> array dinamico que lista TODAS las fechas unicas presentes en REPORTES (Tabla1), ordenadas de mas reciente a mas antigua.",
+        "AQ2_a_AQ8": "Las 7 fechas mas recientes que arroja el array (hoy: 2026-08-16 hasta 2026-08-10). d1..d7 usan SUMIFS(Tabla1[VISITA], Codigo Local, Marca, Fecha=AQ_x) para calcular cuantas visitas (fraccion 0 a 1) hubo cada uno de esos 7 dias.",
+        "riesgo": "La ventana de 7 dias es SIEMPRE 'las ultimas 7 fechas con datos en REPORTES', no un rango de lunes a domingo fijo por calendario. Si algun dia no hay ninguna foto subida en TODO el pais, la ventana se corre y puede mezclar dias de dos semanas ISO distintas, o si se acumula mas de una semana de historico en REPORTES, d1..d7 dejaria de representar la semana actual completa."
+      },
+      "formulas_clave": {
+        "TOTAL": "=SUM(d1:d7)",
+        "DELTA": "=IF(VECES POR SEMANA<=TOTAL,\"CUMPLE\",\"INCUMPLE\")",
+        "FALTANTE": "=IF(DELTA=\"INCUMPLE\", TOTAL-VECES POR SEMANA, 0)  (valor negativo = numero de visitas que faltaron)",
+        "VISITA_0": "=IF(TOTAL=0,1,0)  -> marca 1 cuando NO hubo ninguna visita en toda la ventana de 7 dias (incumplimiento total).",
+        "OSA": "=SUMIFS(Tabla3[OSA], Tabla3[Codigo], COD KPI ONE, Tabla3[Marca/Campana], CLIENTE)  -> SUMA sin filtro de fecha/semana. Suma TODOS los registros historicos de OSA=1 (Discrepancia='OK') que existan en la hoja OSA para ese Local+Marca, sin acotar a la semana vigente."
+      },
+      "hallazgo_riesgo_formula_OSA": "A diferencia de d1..d7 (que SI filtran por fecha via AQ2:AQ8), la columna OSA de RUTA_RUTERO NO tiene filtro de fecha. Hoy 'funciona' porque la hoja OSA solo contiene la semana vigente (se asume que se reemplaza/limpia cada semana), pero es un diseno fragil: si en algun momento OSA acumula mas de una semana de datos sin depurarse, esta columna dejaria de reflejar 'la semana actual' y sumaria historico completo. Marcar como punto a reforzar."
+    },
+    "DINAMICA": {
+      "tipo": "Tabla dinamica (PivotTable) construida sobre RUTA_RUTERO/Tabla4, filtrada a VISITA_0 = 1.",
+      "contenido": "Lista, para cada combinacion CLIENTE(marca)+GESTORES+Local con CERO visitas en la semana vigente, la Suma de VECES POR SEMANA exigida y la Suma de FALTANTE (siempre negativa, = -VECES POR SEMANA). Fila 'Total general': 737 visitas exigidas totalmente incumplidas en la semana revisada.",
+      "uso": "Reporte de control de incumplimiento TOTAL (no parcial) por local/marca/gestor, para seguimiento semanal."
+    },
+    "MAESTRA (Tabla5)": {
+      "grano": "Catalogo maestro de productos por local: MARCA, CADENA, SUB CADENA, N_LOCAL, COD_RT, NOMBRE LOCAL, SKU, DESCRIPCION_PRODUCTO. Columnas se repiten en dos bloques (A:H y L:P aprox.), posiblemente el segundo bloque alimenta listas de validacion/desplegables.",
+      "tamano": "29448 filas.",
+      "uso": "Referencia estatica de que SKU corresponde a que marca/local; util para cruzar contra OSA/REPORTES."
+    }
+  },
+  "proyecto_OPTIMIZACION_MINUTA": {
+    "_proposito": "Segunda capa de trabajo sobre el mismo archivo 02_MINUTAS_CLIENTES.xlsm, descubierta/incorporada en la sesion 5 (2026-08-17). Coexiste con todo lo de REPORTES/OSA/RUTA_RUTERO/DINAMICA documentado arriba, y de hecho DINAMICA (nuestro trabajo) alimenta parte de esta capa (el indicador OSA para TNOGAL).",
+    "archivo_contexto_externo": {
+      "ruta": "H:\\Mi unidad\\CLIENTES\\OPTIMIZACIÓN_MINUTA\\00_CONTEXTO_OPTIMIZACION_MINUTA.json",
+      "autor": "Generado por ChatGPT (no por Claude), es la memoria/contexto de otro asistente para este mismo proyecto de negocio.",
+      "schema_version": "1.5.2 (a la fecha de lectura, 2026-08-17)",
+      "cuenta_drive": "bastian@retailtrust.cl, mount H: = Google Drive 'Mi unidad', mount I: = drive corporativo (fuente de los informes comerciales). Son dos contextos distintos, no confundir.",
+      "rol": "Registro vivo (mantenido por el usuario/ChatGPT) del avance, reglas y contrato de validacion para transformar informes comerciales semanales en minutas por local, para VARIOS comerciales (no solo TNOGAL/FROZT). Claude debe tratarlo como fuente de verdad de las REGLAS DE NEGOCIO de esta capa, pero NO modificarlo (es de otro asistente/proceso)."
+    },
+    "objetivo_generico_del_proceso": {
+      "resumen": "Transformar los indicadores de gestion de cada informe comercial (uno por comercial/cliente marca) en una planilla de minutas: una fila por LOCAL, con una Observacion consolidada que junta TODOS los SKU con algun indicador activo en ese local.",
+      "cadencia": "Semanal. La ruta/archivo fuente de cada comercial cambia de carpeta (patron MM-YYYY) y de numero de semana cada ciclo -- no asumir una ruta fija de una entrega anterior.",
+      "plantilla_observacion": "{INDICADOR} | SKU: {COD_SKU} | {NOMBRE_PRODUCTO} | STOCK: {STOCK} | {ACCION}",
+      "separador_multi_sku": " / ",
+      "clave_agrupacion_salida": "Cod Local + Local (o Cadena+Cod Local+Local cuando el comercial opera en mas de una cadena, como TNOGAL y MAILEMU).",
+      "campos_salida_poblados_por_el_proceso": [
+        "Cod Local",
+        "Local",
+        "Observacion"
+      ],
+      "campos_autocompletados_o_dejados_en_blanco": [
+        "Semana",
+        "Fecha",
+        "Marca",
+        "Cadena",
+        "Gestor",
+        "Supervisor",
+        "Estatus",
+        "Respuesta Supervisor",
+        "Fecha Respuesta"
+      ],
+      "nota_gestor_supervisor": "En los ejemplos revisados, Gestor y Supervisor quedan en blanco en el prototipo de ChatGPT. En NUESTRO archivo (02_MINUTAS_CLIENTES.xlsm) SI tenemos de donde sacarlos: la hoja RUTA_RUTERO ya trae columnas GESTORES y SUPERVISOR por Local+CLIENTE(Marca) -- se puede completar por cruce/lookup en vez de dejarlos vacios, a validar con el usuario."
+    },
+    "catalogo_de_indicadores": {
+      "QUIEBRES": {
+        "significado": "Sala con riesgo de quiebre (calculado aguas arriba segun venta promedio de las ultimas 2 semanas, no se recalcula aca).",
+        "accion_texto": "Sala con riesgo de quiebre; solicitar empuje."
+      },
+      "STOCK_NEGATIVO / NEGATIVO": {
+        "significado": "El inventario del sistema quedo negativo (senal de error de conteo/ajuste, indicador de gestion tal como lo describio el usuario).",
+        "accion_texto": "Realizar ajuste."
+      },
+      "INMOVILIZADO": {
+        "significado": "Producto con stock pero sin ventas hace 2 semanas (fuente lo escribe 'INMOVILZIADO', typo que se normaliza a 'INMOVILIZADO' en la salida).",
+        "accion_texto": "Buscar oportunidad de obtener mas caras por venta lenta (producto con 2 semanas sin ventas)."
+      },
+      "OSA": {
+        "significado": "Producto con stock pero no exhibido (quiebre de exhibicion, no de stock).",
+        "accion_texto": "Producto con stock no exhibido; validar ajuste o sacar a exhibición.",
+        "estado": "Aprobado como prototipo SOLO para TNOGAL (y dentro de TNOGAL, solo para el bloque SMU segun el JSON externo). Para el resto de comerciales queda como desarrollo futuro, no reutilizar sin validar.",
+        "regla_supresion": "Si el mismo SKU/local tiene OSA activo, OSA predomina como foco principal y SUPRIME el indicador INMOVILIZADO para ese mismo SKU/local (para no duplicar el foco en la Observacion)."
+      },
+      "regla_general_indicadores": "Los indicadores se respetan tal como vienen de la fuente; NO se recalculan solo a partir del stock. La fuente corporativa (informe comercial) no se modifica al generar el prototipo."
+    },
+    "reglas_de_validacion_contrato": [
+      "Cada combinacion local-SKU con un indicador activo debe aparecer exactamente una vez en alguna observacion.",
+      "La cantidad de filas de salida debe ser igual a la cantidad de LOCALES UNICOS (no de SKU).",
+      "Todos los SKU de un mismo local quedan dentro de una sola celda Observacion.",
+      "Solo se completan Cod Local, Local y Observacion como campos 'manuales' de la planilla de salida.",
+      "Los indicadores se respetan desde la fuente, sin recalcular.",
+      "La fuente corporativa no se modifica al generar el prototipo.",
+      "OSA activo suprime INMOVILIZADO para el mismo SKU/local."
+    ],
+    "comerciales_en_el_proceso_general_ChatGPT": {
+      "nota": "El JSON externo trackea MAS comerciales de los que nos interesan hoy en 02_MINUTAS_CLIENTES.xlsm. Solo TNOGAL y FROZT son los que el usuario quiere trabajar AHORA en este archivo. Se deja el resto documentado por si se retoman despues.",
+      "FROZT": "status=prototype_validated (ya validado, 2026-07-20). Fuente: Hoja1 (tabla dinamica), cadena unica CENCOSUD/Jumbo. Sin OSA.",
+      "GRANA": "status=prototype_delivered_pending_validation. Fuente: hoja MINUTA. Regla propia: Stock (u) en blanco = 0.",
+      "MAILEMU": "status=pending_validation. Fuente: hoja MINUTA con 2 bloques de gestion (WALMART y CENCOSUD) en la misma pestaña, separados por Cadena.",
+      "ALUSWEET": "status=pending_validation. Para la entrega JULIO S3 se EXCLUYERON los quiebres (solo NEGATIVO e INMOVILIZADO), y no trae columna Cadena.",
+      "TNOGAL": "status=pending_validation. Fuente: hoja MINUTA con 2 bloques (CENCOSUD y SMU). OSA aprobado como prototipo SOLO para el bloque SMU. Regla especial: preservar el texto de local 'ALVI TOBALABA PEÑALOLEN' tal cual viene (no normalizar). Resultado de referencia (JULIO S3, entrega anterior): 7 filas de salida, 10 focos de indicador (OSA:4, QUIEBRES:2, STOCK_NEGATIVO:1, INMOVILIZADO:3), 2 filas CENCOSUD + 5 filas SMU.",
+      "BERRY SUR": "status=pending_validation. Cadena fija CENCOSUD/Jumbo, sin OSA, catalogo generico de indicadores."
+    },
+    "estado_actual_en_02_MINUTAS_CLIENTES_xlsm_sesion5": {
+      "fecha_revision": "2026-08-17",
+      "MINUTA": {
+        "tipo": "Hoja de valores estaticos pegados (SIN formulas, confirmado). SI es una Tabla Excel (ListObject 'Tabla2') -- corregido tras verificar; en la primera revision de la sesion 5 se anoto por error que no lo era.",
+        "columnas": [
+          "RETAIL",
+          "FECHA",
+          "CLIENTE",
+          "COD_LOCAL",
+          "DESCRIPCION_LOCAL",
+          "COD_CENCOSUD",
+          "DESCRIPCION_PRODUCTO",
+          "STOCK(Un)",
+          "QUIEBRES",
+          "INMOVILZIADO",
+          "NEGATIVO"
+        ],
+        "grano": "1 fila = 1 SKU x Local. QUIEBRES/INMOVILZIADO/NEGATIVO son banderas 0/1, en la muestra revisada son mutuamente excluyentes (a lo mas 1 activo por fila).",
+        "contenido_actual": "62 filas de datos (filas 2-62): filas 2-25 = CLIENTE FROZT (25 filas, todas RETAIL=CENCOSUD/Jumbo, FECHA=2026-08-17). Filas 26-62 = CLIENTE TNOGAL (36 filas, mezcla RETAIL=CENCOSUD/Jumbo, SMU/Alvi-Unimarc, TOTTUS, FECHA=2026-08-18).",
+        "ausencia_columna_OSA": "MINUTA NO trae columna OSA. Esto es coherente: el OSA de TNOGAL para esta capa debe salir de NUESTRA propia hoja DINAMICA/OSA (Tabla3, ALERTA_CRITICA), no de MINUTA. Falta definir la clave de cruce entre ambas fuentes (ver 'riesgo_tecnico_principal')."
+      },
+      "PLANTILLA": {
+        "tipo": "Hoja de valores estaticos pegados (SIN formulas, confirmado). NO es una Tabla Excel (ListObject) -- verificado, es rango plano.",
+        "columnas": [
+          "Semana",
+          "Fecha",
+          "Marca",
+          "Cadena",
+          "Cod Local",
+          "Local",
+          "Gestor",
+          "Supervisor",
+          "Observacion",
+          "Estatus",
+          "Respuesta Supervisor",
+          "Fecha Respuesta"
+        ],
+        "coincide_con_schema_ChatGPT": true,
+        "contenido_actual_ES_OBSOLETO": "64 filas de datos (filas 2-65), Semana 33, Fecha 2026-08-14 -- son datos de EJEMPLO/PROTOTIPO de OTROS comerciales que ya NO son foco (BESHOS, GRANA, BERRYSUR, BIGU, MORETTA). NINGUNA fila es de TNOGAL ni FROZT. El usuario pidio expresamente borrar todo esto y reconstruir solo con TNOGAL y FROZT.",
+        "columnas_vacias_en_el_ejemplo": "Gestor, Supervisor, Estatus, Respuesta Supervisor y Fecha Respuesta aparecen vacias en TODAS las filas del ejemplo -- soporta la idea de poblar Gestor/Supervisor via cruce con RUTA_RUTERO al reconstruir.",
+        "patrones_de_Observacion_no_estandar_detectados": "Algunas filas viejas (GRANA, MORETTA) NO siguen el formato '{INDICADOR} | SKU...' sino texto libre como 'Revisar exhibicion de la marca, debe tener todos los SKU.' o 'Revisar OSA de marca.' -- parecen un formato anterior/manual, no el contrato formal del JSON externo. No replicar este patron libre al reconstruir; usar el formato con plantilla."
+      }
+    },
+    "riesgo_tecnico_principal": {
+      "descripcion": "Para TNOGAL, el indicador OSA debe combinarse desde DOS fuentes con esquemas de codigo de local/SKU DISTINTOS: (a) DINAMICA/Tabla3(OSA) -- que usa Codigo (ej 'UN469'), Producto (texto libre) y Local (texto libre tipo 'UNIMARC LOS MILITARES' o 'J502-JUMBO KENNEDY') proveniente de la app de fotos; (b) MINUTA -- que usa COD_LOCAL (ej 'AL3181', numero SMU, numero TOTTUS) y DESCRIPCION_LOCAL, proveniente del informe comercial/pivot corporativo. Antes de construir PLANTILLA hay que definir la CLAVE DE CRUCE confiable entre ambas fuentes (posiblemente via MAESTRA, que ya tiene COD_RT/N_LOCAL/NOMBRE LOCAL como tabla puente, o via RUTA_RUTERO que tiene COD KPI ONE + COD B2B + LOCAL). No asumir que el texto de Local coincide literal entre hojas.",
+      "impacto": "Si no se resuelve bien, el indicador OSA de TNOGAL podria no cruzar correctamente con las filas de MINUTA al armar la Observacion consolidada por local, dejando OSA fuera de la minuta final o duplicando/perdiendo locales.",
+      "estado": "NO RESUELTO, pendiente de diseño antes de ejecutar cualquier reconstruccion de PLANTILLA."
+    },
+    "plan_propuesto_NO_EJECUTADO": "OBSOLETO -- ejecutado en sesion 6 (2026-08-18). Ver 'PLANTILLA_reconstruida_sesion6' para el resultado real y las reglas finalmente aplicadas (distintas en varios puntos a este plan original: Marca SI se incluyo, Gestor/Supervisor quedaron en blanco, QUIEBRES se omite, OSA se extendio tambien a FROZT)."
+  },
+  "PLANTILLA_reconstruida_sesion6": {
+    "estado": "EJECUTADO Y GUARDADO en el archivo real. Fecha: 2026-08-18. Autorizado explicitamente por el usuario, con revision de 2 puntos abiertos antes de escribir (columna Marca y texto de SIN VISITA).",
+    "clave_de_cruce_resuelta_por_el_usuario": {
+      "mecanismo": "El usuario agrego una tabla nueva 'Tabla6' en la hoja MINUTA (columnas N:Q, filas 2:5): CADENA | SUFIJO | SUFIJO2 | OBSERVACION. Define, por cadena, que prefijo(s) usa DINAMICA en sus codigos de local y si hay que quitarlo (dejar numerico) o conservarlo al cruzar con MINUTA.",
+      "valores_Tabla6": {
+        "WALMART": {
+          "prefijos": [
+            "EX",
+            "HI"
+          ],
+          "regla": "dejar numerico (quitar el prefijo)"
+        },
+        "CENCOSUD": {
+          "prefijos": [
+            "J",
+            "N"
+          ],
+          "regla": "conservar (NO quitar el prefijo)"
+        },
+        "TOTTUS": {
+          "prefijos": [
+            "TT"
+          ],
+          "regla": "dejar numerico"
+        },
+        "SMU": {
+          "prefijos": [
+            "AL",
+            "UN"
+          ],
+          "regla": "dejar numerico"
+        }
+      },
+      "hallazgo_tecnico_de_Claude": "La columna 'COD B2B' que ya existia en RUTA_RUTERO/DINAMICA (panel VISITA_0) resulto estar YA normalizada exactamente segun estas mismas reglas de Tabla6 (ej. AL3181 -> COD B2B=3181, TT124 -> COD B2B=124, J502 -> COD B2B='J502'). Para el panel OSA/ALERTA_CRITICA (que no trae un campo ya normalizado, solo el 'Codigo' con prefijo) SI hubo que aplicar la logica de Tabla6 manualmente (funcion normalizar_por_prefijo)."
+    },
+    "reglas_de_negocio_definidas_por_el_usuario_sesion6": [
+      "Agrupar TODO por combinacion (CLIENTE, CADENA, COD_LOCAL normalizado) -- 1 fila de salida por esa combinacion, sin importar cuantos SKU/indicadores tenga.",
+      "Prioridad de indicadores (los 2 primeros vienen de DINAMICA y PREDOMINAN sobre los de MINUTA): 1) SIN VISITA (VISITA_0=1 en DINAMICA/TablaDinamica7), 2) OSA (ALERTA_CRITICA=1 en DINAMICA/TablaDinamica1), 3) STOCK NEGATIVO (MINUTA), 4) INMOVILIZADO (MINUTA).",
+      "QUIEBRES se OMITE por completo esta iteracion ('es una gestion para el cliente', decision explicita del usuario).",
+      "Si el mismo producto/SKU ya genero una linea OSA en un local, se SUPRIME la linea INMOVILIZADO de ese mismo producto en ese local (evita duplicar el foco) -- mismo principio que la regla original de ChatGPT para TNOGAL, aplicado ahora tambien de forma general.",
+      "SIN VISITA se aplico para TNOGAL Y TAMBIEN PARA FROZT (no se restringio a un solo comercial, a diferencia del contrato original de ChatGPT donde OSA solo estaba aprobado para TNOGAL). Confirmar en algun momento con el usuario si esto es intencional a futuro.",
+      "REGLA NUEVA sesion 8 (2026-08-18, aun NO ejecutada): para TNOGAL, EXCLUIR de todos los indicadores cualquier producto cuyo nombre contenga 'LIBRO' (ej. 'LIBRO ACTIVIDADES TIKITITOS VEN A JUGAR', 'LIBRO EL ORIGEN DE LA MUSICA TD', 'LIBRO MI SUPER HEROE TAMBIEN LLORA', 'LIBRO NO QUEREMOS BESOS NI ABRAZOS TD' -- vistos en el panel OSA de DINAMICA para los locales J502/J504/J508 en la corrida de la semana 34). El usuario indico esto como comentario para dejar anotado, sin pedir ejecucion inmediata ('es solo comentario... ya estamos ready'). Aplicar este filtro en la PROXIMA reconstruccion de PLANTILLA para TNOGAL (y revisar si tambien corresponde filtrarlo mas arriba, en el cruce con DINAMICA, o solo al armar la Observacion).",
+      "Textos de Observacion deben ser DISCRETOS porque el cliente tambien ve la planilla, no solo el supervisor: SIN VISITA -> 'SIN VISITA | Revisar local.' (sin mencionar 'visita 0' ni auditoria). OSA -> 'OSA | {Local} | {producto} | STOCK: {stock} | Levantar solicitud de revisión.' (en vez del texto original de ChatGPT 'Producto con stock no exhibido; validar ajuste o sacar a exhibición.', considerado menos discreto). STOCK NEGATIVO e INMOVILIZADO mantienen el texto original del catalogo de ChatGPT ('Realizar ajuste.' / 'Buscar oportunidad de obtener mas caras por venta lenta (producto con 2 semanas sin ventas).').",
+      "CORRECCION sesion 7 (2026-08-18): en el panel OSA/ALERTA_CRITICA de DINAMICA, el campo 'Codigo' es el CODIGO DEL LOCAL (no un SKU de producto real -- ahi no existe SKU de producto). La primera version de PLANTILLA mostraba por error 'OSA | SKU: TT304 | ...' usando ese codigo de local como si fuera SKU. Corregido: las lineas OSA ahora usan la DESCRIPCION del local (columna 'Local' del panel OSA, ej. 'ALVI RECOLETA', 'J511-JUMBO COSTANERA') en vez de 'SKU: {codigo}'. Las lineas STOCK NEGATIVO e INMOVILIZADO (que vienen de MINUTA, donde SI hay SKU real de producto) siguen mostrando 'SKU: {sku}' normalmente, sin cambios.",
+      "Campos escritos en PLANTILLA: Semana, Fecha (fecha de ejecucion de Claude, no la fecha de cada fila de MINUTA), Marca (el usuario en un principio dijo que no, pero tras comentarle que sin Marca la planilla queda ambigua entre TNOGAL/FROZT, confirmo agregarla), Cadena, Cod Local (normalizado via Tabla6), Observacion. Local/Gestor/Supervisor/Estatus/Respuesta Supervisor/Fecha Respuesta quedan EN BLANCO a proposito (decision explicita del usuario, sesion 5)."
+    ],
+    "bugs_encontrados_y_corregidos_durante_la_ejecucion": [
+      {
+        "bug": "Codigos de local duplicados en la salida (ej. TNOGAL/TOTTUS/304 aparecio en 2 filas separadas en vez de 1) porque Excel/COM siempre devuelve numeros como float (304.0), y la funcion que normaliza codigos via Tabla6 devolvia un string sin decimales (\"304\") mientras que la lectura directa de MINUTA devolvia \"304.0\" -- dos claves de agrupacion distintas para el mismo local.",
+        "fix": "Se creo una funcion norm_code(x) unica, usada en TODOS los puntos donde se arma la clave de agrupacion (MINUTA, panel VISITA_0, panel OSA), que convierte cualquier float entero a int antes de convertir a string.",
+        "tambien_se_limpio": "El texto de Observacion mostraba 'SKU: 80009224.0' y 'STOCK: 8.0' (el mismo problema pero dentro del texto libre). Se agrego una funcion fmt_num(x) para mostrar los numeros sin '.0' en el texto final."
+      },
+      {
+        "bug": "INCIDENTE SERIO: en el segundo intento de escritura, Excel se desconecto/crasheo durante wb.Save() tras un recalculo inusualmente largo (358s vs los ~45-80s normales en corridas anteriores). Al revisar despues, TANTO el Excel de la automatizacion COMO la sesion de Excel del USUARIO (que tenia abiertos 01_RUTA_RUTEROS.xlsm y 10_MARCAS_CLAVES_Y_ACCESOS.xlsx en paralelo) aparecieron cerrados sin lock activo.",
+        "causa_probable": "win32com.client.Dispatch('Excel.Application') (sin 'Ex') puede ADJUNTARSE a una instancia de Excel YA CORRIENDO del usuario en vez de crear una independiente. Si el usuario tiene Excel abierto con sus propios archivos, la automatizacion de Claude termina compartiendo esa misma instancia -- y si esa instancia se cae (por el motivo que sea), se lleva tambien las ventanas del usuario.",
+        "fix_aplicado": "Cambiar SIEMPRE a win32com.client.gencache.EnsureDispatch(win32com.client.DispatchEx('Excel.Application')) -- DispatchEx fuerza una instancia NUEVA e independiente, que no interfiere con ninguna sesion de Excel que el usuario tenga abierta. Aplicado desde la sesion 6 en adelante; usar este patron en TODO script futuro que automatice Excel en este proyecto.",
+        "riesgo_para_el_usuario": "Si el usuario tenia cambios sin guardar en 01_RUTA_RUTEROS.xlsm o 10_MARCAS_CLAVES_Y_ACCESOS.xlsx (ultima modificacion en disco: 2026-08-18 14:24) hechos DESPUES de esa hora, es posible que se hayan perdido con el crash. Se le aviso explicitamente al usuario en el chat; pendiente de confirmar si hubo perdida real.",
+        "leccion_para_el_futuro": "SIEMPRE usar DispatchEx (nunca Dispatch simple) al automatizar Excel en la maquina del usuario, Y preguntar/verificar si el usuario tiene Excel abierto con archivos propios antes de lanzar automatizaciones largas, para evitar interferir con su sesion en vivo."
+      }
+    ],
+    "resultado_final": {
+      "filas_escritas": 49,
+      "por_cliente": {
+        "FROZT": 10,
+        "TNOGAL": 39
+      },
+      "semana": 34,
+      "fecha_ejecucion": "2026-08-18",
+      "errores_de_formula": 0,
+      "claves_duplicadas": 0,
+      "verificacion_post_escritura": "OK -- ambas PivotTables de DINAMICA intactas, array dinamico SORT/UNIQUE intacto, todas las Tablas (Tabla1,Tabla2,Tabla3,Tabla4,Tabla5,Tabla6) intactas, PLANTILLA sin ListObject (rango plano, como se penso)."
+    },
+    "backups_creados_en_esta_sesion": [
+      "memoria_claude/BACKUP_02_MINUTAS_CLIENTES_20260818_150023.xlsm (antes de tocar PLANTILLA)"
+    ]
+  },
+  "diseno_escalamiento_TRAZABILIDAD": {
+    "estado": "DISENADO, NO EJECUTADO. Registrado en sesion 9 (2026-08-18). Nueva modalidad de trabajo acordada: el USUARIO construye (tablas/formulas en Excel, sin scripts), CLAUDE VALIDA cada pieza antes de seguir a la siguiente. Se abandona (para esta pieza) el patron de escritura directa por COM que se uso para PLANTILLA -- aqui se prefiere Excel nativo, en parte por preferencia del usuario y en parte por el incidente de Excel de la sesion 6.",
+    "problema_que_resuelve": "DINAMICA (los 2 pivots) y el flujo actual de PLANTILLA son una FOTOGRAFIA de una semana cerrada: cuando se repega REPORTES/OSA/MINUTA con datos nuevos, lo anterior desaparece sin dejar rastro. Resultado: el martes, cuando ya se solvento parte de lo detectado el lunes, no hay forma de saber que se resolvio -- o se sigue viendo como abierto (si no se repega nada) o simplemente se pierde el historial (si se repega). No hay memoria de que se detecto, cuando, ni cuando se resolvio.",
+    "decisiones_tomadas_sesion9": [
+      "Cadencia de actualizacion de datos fuente: DIARIA o casi diaria (el usuario ya viene actualizando lunes y martes). El diseño debe funcionar bien con esa cadencia -- entre mas seguido se actualice, menor el retraso en detectar que algo se resolvio.",
+      "Alcance: los 4 indicadores (SIN_VISITA, OSA, STOCK_NEGATIVO, INMOVILIZADO), mismo esqueleto que ya usa PLANTILLA, para no duplicar logica.",
+      "Preferencia explicita del usuario: construir esto con TABLAS Y FORMULAS de Excel nativas, no con scripts de Python/COM. El usuario construye, Claude valida.",
+      "RUTA_RUTERO NO es el lugar para el detalle -- su grano es Local+Marca (la muestra del proyecto), no Local+Marca+SKU+indicador+fecha. RUTA_RUTERO se queda como el RESUMEN de estado actual (su columna OSA, hoy mal calculada sin filtro de fecha segun el hallazgo de la sesion 1, se recalculara desde la nueva estructura)."
+    ],
+    "arquitectura_elegida": {
+      "nombre": "Log de deteccion append-only + estado derivado por formulas (NO tabla mutable con UPDATE in-place, porque eso requeriria logica con memoria/estado que las formulas de Excel no pueden hacer solas).",
+      "razonamiento": "En vez de una tabla donde cada fila se actualiza (Estado cambia de ABIERTO a RESUELTO in-place, lo cual necesitaria un macro o script que compare 'hoy' vs 'ayer'), se usa un LOG que solo CRECE: cada refresh agrega un bloque de filas nuevas con la fecha de ese refresh. El estado ABIERTO/RESUELTO de cada foco se DERIVA con formulas (MAXIFS/COUNTIFS) comparando la ultima fecha en que ese foco aparecio contra la fecha del refresh mas reciente de todo el log. Si coincide, sigue abierto; si no, esta resuelto desde ese dia. Este patron es 100% Excel nativo (formulas, sin macros) y encaja con el flujo de pegado manual que el usuario ya usa para MINUTA."
+    },
+    "tablas_a_construir": {
+      "1_TRAZABILIDAD_LOG": {
+        "tipo": "Tabla Excel nueva, hoja nueva. APPEND-ONLY (nunca se borran ni editan filas viejas, solo se agregan filas nuevas en cada refresh).",
+        "columnas": [
+          "Fecha_registro",
+          "Semana_ISO",
+          "Cliente",
+          "Cadena",
+          "Cod Local",
+          "Local",
+          "SKU",
+          "Producto",
+          "Tipo_Indicador",
+          "STOCK",
+          "ID"
+        ],
+        "columna_ID": "Clave unica del foco = Cliente&\"|\"&Cadena&\"|\"&[Cod Local]&\"|\"&Tipo_Indicador&\"|\"&SKU (SKU vacio para SIN_VISITA, que es a nivel de local, no de producto).",
+        "como_se_llena": "Cada vez que se actualiza MINUTA/DINAMICA (idealmente diario), se calcula el bloque de 'focos detectados hoy' (ver tabla 2) y se copian esos valores (pegado como VALORES, no formulas) al final de esta tabla, con Fecha_registro = fecha de ese dia. Es el mismo tipo de accion manual que ya se hace hoy con MINUTA."
+      },
+      "2_DETECCION_HOY (zona de calculo, no se guarda historico aqui)": {
+        "tipo": "Area de formulas (puede vivir en una hoja de staging nueva, ej. hoja 'CALCULO', o reutilizar el mismo mecanismo que ya se armo en Python para build_plantilla.py pero traducido a formulas de Excel).",
+        "proposito": "Recalcula, con formulas nativas (COUNTIFS/SUMIFS/INDEX/MATCH/IFERROR, igual estilo que ya usa el archivo en RUTA_RUTERO/OSA), la lista de focos activos HOY cruzando MINUTA + DINAMICA + Tabla6 (mismo cruce que ya se valido y funciono para PLANTILLA: normalizacion de codigo de local por prefijo, SIN VISITA + OSA predominan sobre MINUTA, OSA suprime INMOVILIZADO del mismo SKU/local, QUIEBRES omitido, filtro 'LIBRO' pendiente para TNOGAL).",
+        "nota": "Esta es la pieza mas compleja de traducir de Python a formulas -- el cruce por Tabla6 (prefijos EX/HI/TT/AL/UN, dejar numerico vs conservar) va a necesitar formulas anidadas con LEFT/FIND/IFERROR similares a las que ya existen en OSA para parsear el campo Hora. Construir con cuidado y validar caso por caso."
+      },
+      "3_TRAZABILIDAD_ESTADO (tabla derivada, formulas sobre el LOG)": {
+        "tipo": "Tabla de valores UNICOS de ID (se puede armar con UNIQUE() sobre TRAZABILIDAD_LOG[ID], o como tabla dinamica agrupando por ID).",
+        "columnas_calculadas": {
+          "Primera_fecha_detectado": "=MINIFS(TRAZABILIDAD_LOG[Fecha_registro], TRAZABILIDAD_LOG[ID], [@ID])",
+          "Ultima_fecha_detectado": "=MAXIFS(TRAZABILIDAD_LOG[Fecha_registro], TRAZABILIDAD_LOG[ID], [@ID])",
+          "Veces_detectado": "=COUNTIFS(TRAZABILIDAD_LOG[ID], [@ID])",
+          "Fecha_ultimo_refresh_global": "=MAX(TRAZABILIDAD_LOG[Fecha_registro])  (una sola celda, referencia absoluta)",
+          "Estado": "=IF([@Ultima_fecha_detectado]=Fecha_ultimo_refresh_global, \"ABIERTO\", \"RESUELTO\")",
+          "Fecha_resolucion": "=IF([@Estado]=\"RESUELTO\", [@Ultima_fecha_detectado], \"\")  (aproximado: la ultima vez que se vio activo; se resolvio en algun momento despues de esa fecha y antes del siguiente refresh)"
+        }
+      }
+    },
+    "plan_de_construccion_de_menor_a_mayor": [
+      "FASE 0 (minima): Crear la hoja y Tabla Excel 'TRAZABILIDAD_LOG' vacia, solo con los encabezados de columna acordados. Sin datos, sin formulas todavia. Claude valida que la estructura de columnas sea correcta antes de seguir.",
+      "FASE 1: Construir la zona 'DETECCION_HOY' con formulas que repliquen el cruce MINUTA+DINAMICA+Tabla6 (normalizacion por prefijo, prioridad SIN VISITA>OSA>NEGATIVO>INMOVILIZADO, supresion OSA->INMOVILIZADO, QUIEBRES omitido). Empezar por UNA sola cadena (ej. solo CENCOSUD, que es 'conservar' y no necesita parseo de prefijo) para validar el mecanismo antes de sumar TOTTUS/SMU/WALMART (que si necesitan parseo). Claude valida cada formula contra los resultados ya conocidos de la corrida en Python (49 filas, sesion 6/7) como caso de prueba.",
+      "FASE 2: Primera carga real -- copiar (como valores) el resultado de DETECCION_HOY de HOY a TRAZABILIDAD_LOG, con Fecha_registro=hoy. Este es el 'dia 1' del historico. Claude valida conteos y que el ID quede unico.",
+      "FASE 3: Construir 'TRAZABILIDAD_ESTADO' con las formulas MINIFS/MAXIFS/COUNTIFS/IF descritas arriba. Probarla con al menos 2 cargas del LOG (o sea, esperar a la segunda actualizacion de datos, ej. al dia siguiente) para verificar que un foco que ya no aparece efectivamente cambia a RESUELTO.",
+      "FASE 4: Conectar el resto del sistema a esta fuente unica de verdad: (a) RUTA_RUTERO columna OSA se recalcula como COUNTIFS(TRAZABILIDAD_ESTADO[Estado],\"ABIERTO\",...) filtrado por Local+Marca, corrigiendo el bug de falta de filtro de fecha; (b) PLANTILLA se arma filtrando TRAZABILIDAD_ESTADO por Estado=ABIERTO en vez de recalcular todo de cero cada vez.",
+      "FASE 5 (futuro, no diseñada aun en detalle): metricas de gestion sobre el historico ya acumulado -- dias promedio para resolver por tipo de indicador, tasa de reincidencia (focos que se resuelven y vuelven a aparecer), tablero semanal comparativo."
+    ],
+    "modalidad_de_trabajo_acordada": "El usuario construye cada pieza (tablas, formulas) directamente en Excel. Claude revisa/valida cada fase antes de avanzar a la siguiente -- no escribe directamente en el archivo para esta iniciativa salvo que el usuario lo pida explicitamente. Ir de menor a mayor, sin saltarse fases, para no repetir el desgaste de la sesion 6 (bug de normalizacion + crash de Excel).",
+    "AVANCE_sesion10_usuario_construyo_su_propia_solucion_parcial": {
+      "estado": "CONSTRUIDO POR EL USUARIO (no por Claude), ya en el archivo real. Solo lectura/validacion por parte de Claude, sin ejecutar nada.",
+      "contexto": "El usuario actualizo REPORTES y OSA con datos de los dias 17 y 18 de agosto (dias adicionales DESPUES de que la 'semana cerrada' original -- 10 al 16 de agosto -- ya estaba fijada por el mecanismo AQ1/SORT/UNIQUE). En vez de esperar el diseno completo de TRAZABILIDAD, el usuario extendio por su cuenta RUTA_RUTERO/Tabla4 con 4 columnas nuevas, reutilizando el MISMO mecanismo de array dinamico que ya existia.",
+      "columnas_nuevas_en_RUTA_RUTERO": {
+        "mecanismo_base": "Se agrego una nueva celda ancla con array dinamico: '=SORT(UNIQUE(Tabla1[Fecha]),1,1)' (notese el ULTIMO argumento en 1 = ASCENDENTE, al reves del AQ1 original que es descendente). Esto hace que las fechas mas ANTIGUAS queden primero (util para anclar la semana original en AT2:AT8) y las fechas MAS NUEVAS que se van agregando queden al final del array (AT9, AT10, ... conforme se van pegando mas dias).",
+        "d1+": "=SUMIFS(Tabla1[VISITA],Tabla1[Codigo Local],[@[COD KPI ONE]],Tabla1[Marca],[@CLIENTE],Tabla1[Fecha],$AT$9)  -> visitas del primer dia agregado DESPUES de la semana cerrada (18-ago en la corrida actual, revisar: parece haber una fecha de mas, ver 'nota_fechas' abajo).",
+        "d2+": "=SUMIFS(...,Tabla1[Fecha],$AT$10)  -> visitas del segundo dia agregado.",
+        "VISITA_ACTUAL": "=SUM([@[d1+]:[d2+]])  -> total de visitas NUEVAS registradas despues de que cerro la semana.",
+        "RESUELTO_SEM_ACTUAL": "=IF([@VISITA_0]=1,IF([@VISITA_ACTUAL]>0,\"RESULTO\",\"PERSISTE\"),0)  -> para locales que tuvieron CERO visitas en la semana cerrada, indica si YA se resolvio (hubo alguna visita nueva) o SIGUE PERSISTIENDO (sigue en cero)."
+      },
+      "evaluacion_de_Claude": "Solucion elegante y minimalista: resuelve el problema central (saber si algo ya se resolvio DESPUES de cerrada la semana) sin hoja nueva, sin pegado manual diario, sin Power Query -- solo estirando el array dinamico existente. Mejor punto de partida que el diseno de TRAZABILIDAD_LOG propuesto en sesion 9 para el caso especifico de INCUMPLIMIENTO (VISITA_0).",
+      "limitaciones_detectadas_por_Claude": [
+        "Typo: 'RESULTO' deberia ser 'RESUELTO' (falta la E). Riesgo bajo mientras nadie mas compare ese texto exacto en otra formula, pero corregirlo cuando se pueda.",
+        "Solo cubre el lado de INCUMPLIMIENTO/VISITA_0. La columna OSA de RUTA_RUTERO sigue con el bug detectado en la sesion 1 (SUMIFS sobre Tabla3[OSA] sin ningun filtro de fecha, suma TODO el historico) -- se podria aplicar la misma logica de anclas AT9/AT10 al lado OSA, pendiente de decidir con el usuario.",
+        "No escala solo: cada dia nuevo que se agregue requiere sumar a mano una columna mas (d3+, d4+...) y una fila mas al ancla (AT11, AT12...). Sirve perfecto para 'ver si ya se resolvio esta semana', pero no acumula HISTORIAL propiamente (no sabe cuantas veces se reincidio en semanas pasadas) -- para eso seguiria haciendo falta algo con memoria real (TRAZABILIDAD_LOG u otra alternativa)."
+      ]
+    },
+    "decision_formulas_vs_power_query_sesion10": {
+      "pregunta_del_usuario": "Como unificar la logica de DINAMICA (las 2 tablas dinamicas) en una sola tabla -- con Power Query? Preocupacion explicita: miedo a que el PC no aguante tanto calculo. Pregunta si se puede maximizar el uso de formulas y dejar Power Query como ultima instancia.",
+      "recomendacion_de_Claude": "Quedarse con formulas para todo lo diseñado hasta ahora. Las tablas realmente pesadas del archivo (REPORTES ~50k filas, OSA ~51k filas) YA se consultan hoy con SUMIFS/COUNTIFS desde RUTA_RUTERO y el archivo aguanta bien (recalculos completos medidos en 45-80s en las corridas de las sesiones 6-7). Las tablas nuevas que se estan diseñando encima (DETECCION_HOY, TRAZABILIDAD, o la extension d1+/d2+ que ya construyo el usuario) son CHICAS (RUTA_RUTERO ~4k filas, MINUTA ~60 filas, paneles de DINAMICA ~2000 filas) -- ahi no hay riesgo de sobrecargar el equipo con formulas.",
+      "cuando_si_usar_Power_Query": "Power Query no se justifica aqui por rendimiento (las formulas ya aguantan), sino para el dia que se quiera una TABLA UNICA de verdad que combine/apile REPORTES+OSA+MINUTA+RUTA_RUTERO en una sola vista historica -- ese es el caso de uso natural de Power Query (apilar/unir datos de forma distinta), y ademas solo recalcula al presionar 'Actualizar', no en cada edicion como las formulas. Si se llega a ese punto, probar primero en una COPIA del archivo, cronometrando el tiempo de refresh, antes de aplicarlo al archivo real.",
+      "conclusion": "Por ahora: 100% formulas, siguiendo el patron que el usuario ya valido con d1+/d2+/VISITA_ACTUAL/RESUELTO_SEM_ACTUAL. Power Query queda en el bolsillo, no descartado, solo pospuesto hasta que haya una necesidad concreta de unificacion que las formulas no resuelvan bien."
+    },
+    "plan_unificacion_DINAMICA_sesion11": {
+      "estado": "DISENADO, NO EJECUTADO. Solo comentario/plan (sesion 11, 2026-08-18).",
+      "pregunta_del_usuario": "DINAMICA mezcla 2 indicadores (incumplimientos y OSA) en 2 tablas dinamicas separadas que hay que leer por separado. Pidio unificarlos para no tener que leerlos aparte.",
+      "diagnostico": "Los 2 pivots tienen GRANO distinto: incumplimiento es Local+Marca (sin bajar a producto), OSA es Local+Marca+SKU. Fusionarlos en un solo pivot CLASICO no funciona bien (se pierde detalle de SKU o se infla el incumplimiento). La unificacion correcta es '2 pivots -> 1 tabla PLANA (formato largo)': una lista con 1 fila por foco detectado (sea incumplimiento o sea OSA), con columna Tipo_Indicador que los distingue -- de ahi se arma UN pivot o se filtra/ordena como se quiera.",
+      "solucion_propuesta": {
+        "herramientas": "FILTER() y VSTACK() -- funciones de array dinamico modernas, misma familia que el SORT(UNIQUE(...)) que el archivo YA usa exitosamente. 100% formulas, sin Power Query, consistente con la direccion de herramientas acordada en sesion 10.",
+        "esquema_de_columnas_comun": [
+          "Cliente",
+          "Cadena",
+          "Cod Local",
+          "Local",
+          "Tipo_Indicador",
+          "SKU",
+          "Producto",
+          "Detalle",
+          "Fecha"
+        ],
+        "bloque_1_incumplimientos": "=FILTER(Tabla4, Tabla4[VISITA_0]=1) reordenado/mapeado al esquema comun -- SKU y Producto quedan vacios, Detalle = valor de FALTANTE.",
+        "bloque_2_osa": "=FILTER(Tabla3, Tabla3[ALERTA_CRITICA]=1) mapeado al mismo esquema -- Cod Local = el codigo, Detalle = STOCK_B2B.",
+        "union": "=VSTACK(Bloque1, Bloque2) -- apila ambos bloques en una sola tabla espilada, en una formula.",
+        "resultado": "Un pivot UNICO sobre esa tabla apilada (usando Tipo_Indicador como filtro/columna) reemplaza los 2 pivots actuales de DINAMICA."
+      },
+      "conexion_con_diseno_previo": "Este esquema (Tipo_Indicador + Estado) es basicamente la tabla DETECCION_HOY de la sesion 9, pero construida con FILTER+VSTACK (mas limpio y nativo) en vez de formulas anidadas complejas. El Estado ABIERTO/RESUELTO se resolveria extendiendo el mismo patron d1+/d2+/RESUELTO_SEM_ACTUAL que el usuario ya construyo para incumplimiento, aplicado ahora a esta tabla unificada (cubriendo tambien OSA, que hoy no tiene ese tratamiento).",
+      "plan_de_menor_a_mayor": [
+        "1) Construir SOLO el Bloque 1 (incumplimiento como lista plana con FILTER) y validar que el esquema de columnas funciona.",
+        "2) Construir SOLO el Bloque 2 (OSA como lista plana con FILTER) con el mismo esquema.",
+        "3) VSTACK de ambos bloques -- la tabla unificada.",
+        "4) Un pivot unico sobre esa tabla, reemplazando los 2 pivots actuales de DINAMICA.",
+        "5) (Despues) extender el patron RESUELTO_SEM_ACTUAL a esta tabla unificada, para Estado ABIERTO/RESUELTO en un solo lugar, cubriendo tambien OSA."
+      ],
+      "modalidad": "Igual que las fases de TRAZABILIDAD: el usuario construye, Claude valida. Se ofrecio empezar por el Bloque 1, a la espera de que el usuario decida avanzar."
+    },
+    "AVANCE_sesion12_usuario_construyo_gestor_y_filtro_resuelto": {
+      "estado": "CONSTRUIDO POR EL USUARIO (no por Claude), ya en el archivo real. Claude solo reviso (lectura) y valido, sin ejecutar nada.",
+      "contexto": "El usuario actualizo el archivo el mismo (OSA crecio a 69333 filas, RUTA_RUTERO a 4149, DINAMICA se refresco) y pidio ayuda para avanzar hacia el objetivo final: mezclar CUMPLIMIENTO + OSA + MINUTA para producir la PLANTILLA resultante, con la meta explicita de que la intervencion manual (de Claude y de el mismo) vaya siendo CADA VEZ MENOR -- mas automatico.",
+      "cambios_verificados": [
+        "Rename de trazabilidad: en OSA (Tabla3), 'Marca/Campaña' -> 'CLIENTE' y 'Codigo' -> 'COD KPI ONE', para que calcen LITERAL con los nombres de columna que ya usa RUTA_RUTERO (Tabla4). Esto habilita cruces directos por nombre de columna entre ambas tablas.",
+        "Nueva columna Gestor en el panel OSA de DINAMICA: '=XLOOKUP(1,(Tabla4[CLIENTE]=DINAMICA!J{fila})*(Tabla4[COD KPI ONE]=DINAMICA!K{fila}),Tabla4[GESTORES])' -- cruce de 2 criterios via XLOOKUP + multiplicacion booleana, trae el gestor responsable de cada foco OSA. Funciona gracias al rename anterior.",
+        "El pivot de incumplimiento (TablaDinamica7) ahora tiene un PageField adicional: RESUELTO_SEM_ACTUAL='PERSISTE' -- es decir, el propio pivot YA FILTRA y descarta los incumplimientos que se resolvieron despues de cerrada la semana (usando el campo que el usuario construyo en la sesion 10). Resuelve directamente el problema de staleness para el lado de cumplimiento.",
+        "Los paneles de DINAMICA ahora incluyen columnas de fecha para el 17 y 18 de agosto (saltando el 16), reflejando la data mas reciente pegada en REPORTES/OSA."
+      ],
+      "evaluacion_de_Claude": "Excelente progreso, exactamente la direccion correcta: cada pieza que el usuario agrega reduce lo que Claude tendria que recalcular por script. El rename de columnas para habilitar cruces por nombre es una practica solida que facilita todo lo que sigue."
+    },
+    "plan_hacia_automatizacion_completa_sesion12": {
+      "objetivo_declarado_por_el_usuario": "Mezclar CUMPLIMIENTO + OSA + MINUTA para producir la PLANTILLA resultante, con ayuda decreciente de Claude en el tiempo -- que la lectura/generacion sea cada vez mas automatica (formulas vivas, no scripts que Claude corre cada vez).",
+      "pieza_que_falta": "Sumar MINUTA (NEGATIVO + INMOVILIZADO) al mismo esquema comun que se uso para CUMPLIMIENTO y OSA en el plan de la sesion 11 (VSTACK). Esto requiere traducir a formulas la normalizacion de 'Cod Local' de MINUTA contra Tabla6 (el mapa de prefijos por cadena) que hoy solo existe en el script de Python (build_plantilla.py) -- la parte mas compleja tecnicamente (necesita LEFT/FIND para separar el prefijo segun cadena).",
+      "pipeline_completo_propuesto": [
+        "1) Bloque CUMPLIMIENTO (FILTER sobre Tabla4 con VISITA_0=1 y RESUELTO_SEM_ACTUAL<>'RESUELTO'), esquema comun.",
+        "2) Bloque OSA (FILTER sobre Tabla3 con ALERTA_CRITICA=1), esquema comun, ya incluye Gestor gracias al XLOOKUP que el usuario construyo.",
+        "3) Bloque MINUTA (FILTER sobre Tabla2 con NEGATIVO=1 o INMOVILZIADO=1), esquema comun, Cod Local normalizado via formula equivalente a Tabla6 -- PENDIENTE DE CONSTRUIR.",
+        "4) VSTACK(Bloque1, Bloque2, Bloque3) -- tabla plana unica con las 3 fuentes.",
+        "5) PLANTILLA se arma con UNIQUE() de los locales + TEXTJOIN() + FILTER() sobre esa tabla plana, generando la Observacion consolidada por formula -- reemplaza el script build_plantilla.py de Claude. Cada refresh de MINUTA/REPORTES/OSA recalcula PLANTILLA solo, sin que Claude tenga que ejecutar nada."
+      ],
+      "esquema_columna_comun_recordatorio": [
+        "Cliente",
+        "Cadena",
+        "Cod Local",
+        "Local",
+        "Gestor",
+        "Tipo_Indicador",
+        "SKU",
+        "Producto",
+        "Detalle",
+        "Estado"
+      ],
+      "estado": "DISENADO, NO EJECUTADO. Se ofrecio a el usuario continuar con la pieza de MINUTA (normalizacion Tabla6 en formula) o primero seguir validando lo ya construido -- a la espera de su decision."
+    },
+    "hallazgo_sesion13_OSA_multi_semana": {
+      "estado": "CONFIRMADO CON DATOS, DEJADO PENDIENTE A PROPOSITO (decision del usuario: 'aun asi nos importa el ultimo reporte del OSA, entonces no afecta por el momento'). NO se corrigio nada.",
+      "hallazgo": "OSA (Tabla3) ya tiene 69.332 filas repartidas en 2 semanas ISO distintas: semana 33 (10-15 ago, 51.276 filas) y semana 34 (17-18 ago, 18.056 filas). La formula RECURRENCIA_SEMANA (sesion 4) NUNCA tuvo filtro de fecha real -- cuenta discrepancias en TODA la tabla sin acotar a una semana. Mientras OSA era una sola semana esto coincidia por accidente con 'recurrencia esta semana'; ahora que hay 2+ semanas mezcladas, el numero pasa a significar 'recurrencia historica acumulada' sin que el nombre del campo lo refleje.",
+      "impacto_actual": "BAJO / no urgente: ALERTA_CRITICA no cambia de comportamiento porque su umbral es RECURRENCIA_SEMANA>=1, que cualquier fila con discrepancia ya cumple trivialmente sea 1 semana o varias. Y ES_ULTIMO_REGISTRO (MAXIFS de FECHA_HORA, sin filtro tampoco) en realidad esta BIEN asi -- 'el ultimo registro' debe ser el mas reciente sin importar la semana, que es justo lo que le importa al usuario ahora mismo.",
+      "pendiente_para_cuando_se_retome": "Agregar SEMANA_ISO a OSA (falta, REPORTES si lo tiene) y separar el campo confuso en dos: RECURRENCIA_SEMANA_ACTUAL (acotada a la semana ISO vigente) vs RECURRENCIA_HISTORICA (todas las semanas, señal de problema cronico). Util pero no bloqueante -- explicitamente pospuesto por el usuario."
+    },
+    "PIVOTE_ARQUITECTONICO_sesion13_hacia_PowerQuery_hibrido": {
+      "estado": "PROPUESTO, NO EJECUTADO. Pendiente de que el usuario elija modalidad de construccion.",
+      "contexto": "El usuario pregunto explicitamente si conviene dejar las tablas dinamicas (DINAMICA) como Power Query para la unificacion CUMPLIMIENTO+OSA+MINUTA, o si es 'muy denso'. Pidio la opinion honesta de Claude y 'ver el alcance' de su parte en el desarrollo.",
+      "cambio_de_recomendacion_respecto_a_sesion10": "En la sesion 10 Claude recomendo quedarse 100% en formulas, razonando que las tablas grandes (REPORTES/OSA) ya se consultaban bien con SUMIFS y las tablas nuevas a diseñar eran chicas. Esa recomendacion YA NO aplica: el crecimiento real de OSA (51k->69k filas en un dia, confirmado multi-semana en la sesion 13) demuestra que el miedo original del usuario ('que el PC explote') es fundado si se construye FILTER() en vivo sobre una tabla que sigue creciendo cada semana -- un array dinamico se recalcula en CADA edicion del libro, no solo cuando se quiere. Claude reviso su postura con la evidencia nueva.",
+      "arquitectura_hibrida_propuesta": {
+        "principio": "Power Query para FILTRAR/REDUCIR las tablas grandes que siguen creciendo (OSA, potencialmente REPORTES a futuro) -- solo recalcula al 'Actualizar', no en vivo. Formulas (UNIQUE+FILTER+TEXTJOIN) SOLO para el paso final, sobre la tabla YA unificada y chica -- ahi no hay riesgo de recalculo pesado sea cual sea el tamaño de las fuentes.",
+        "PQ_CUMPLIMIENTO": "Origen Tabla4 (RUTA_RUTERO). Filtrar VISITA_0=1 (y no resuelto via RESUELTO_SEM_ACTUAL). Renombrar/seleccionar columnas al esquema comun.",
+        "PQ_OSA": "Origen Tabla3 (OSA, la tabla que mas crece). Filtrar ALERTA_CRITICA=1. Merge contra Tabla4 para traer Gestor (equivalente en Power Query al XLOOKUP que el usuario ya construyo a mano en DINAMICA).",
+        "PQ_MINUTA": "Origen Tabla2 (MINUTA) + Tabla6 (prefijos). Normalizar Cod Local segun regla de Tabla6 (conservar/dejar numerico). Separar cada fila en linea NEGATIVO o INMOVILIZADO segun corresponda -- pieza mas compleja tecnicamente, equivalente en M a lo que ya se resolvio en Python (build_plantilla.py) y se habia diseñado en formula en la sesion 11-12.",
+        "esquema_comun": [
+          "Cliente",
+          "Cadena",
+          "Cod Local",
+          "Local",
+          "Gestor",
+          "Tipo_Indicador",
+          "SKU",
+          "Producto",
+          "Detalle",
+          "Estado"
+        ],
+        "union": "Append Queries de las 3 consultas -> TABLA_UNIFICADA, cargada como tabla normal de Excel (chica, refrescada solo bajo demanda).",
+        "paso_final_formulas": "PLANTILLA se sigue armando con formulas (UNIQUE de locales + FILTER + TEXTJOIN) pero SOBRE TABLA_UNIFICADA (ya chica), no sobre las tablas grandes originales."
+      },
+      "alcance_ofrecido_por_Claude": "Escribir el codigo M exacto de cada una de las 3 consultas, listo para pegar en el Editor Avanzado de Power Query (el usuario pega y actualiza, Claude valida el resultado -- mismo patron 'usuario ejecuta, Claude valida' ya establecido). Alternativa: Claude las arma directamente por COM (con backup e instancia aislada, como en PLANTILLA), mas rapido pero con el riesgo de automatizacion ya conocido. Se pregunto al usuario cual prefiere; sin respuesta aun."
+    }
+  },
+  "ARCHIVO_LIVIANO_PLANTILLA_sesion15": {
+    "estado": "CREADO POR EL USUARIO, EN USO ACTIVO desde 2026-08-19. Este es ahora el metodo RECOMENDADO para generar PLANTILLA -- reemplaza (para esta tarea especifica) al archivo pesado original.",
+    "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_MINUTAS_CLIENTES_PLANTILLA.xlsm",
+    "por_que_existe": "El archivo original (02_MINUTAS_CLIENTES.xlsm) crecio a ~26MB (OSA con 69k+ filas, RUTA_RUTERO 4149, DINAMICA 2142) y las automatizaciones por COM empezaron a CRASHEAR de verdad: un intento con CalculateFullRebuild tardo 159s y la conexion COM se cayo durante el guardado (incidente separado del crash de la sesion 6). El usuario, por su cuenta, creo este archivo liviano (~110KB) exportando SOLO lo necesario como VALORES PLANOS (sin formulas): un snapshot de cada pieza relevante.",
+    "estructura": {
+      "REPORTES (Tabla1)": "Snapshot de lo que antes era el panel VISITA_0 de DINAMICA, YA FILTRADO a incumplimiento persistente (equivalente a RESUELTO_SEM_ACTUAL='PERSISTE'). Columnas: CLIENTE, GESTORES, COD KPI ONE, LOCAL, VECES POR SEMANA, FALTANTE. 373 filas (incluye TODOS los clientes historicos del universo, no solo los de interes -- el filtrado por cliente se sigue haciendo en el script de sintesis).",
+      "OSA (Tabla3)": "Snapshot de lo que antes era el panel ALERTA_CRITICA de DINAMICA. Columnas: CLIENTE, COD KPI ONE, Local, Producto, fechas (10 al 18 de agosto), Total general. 2138 filas, mismo alcance universal (todos los clientes).",
+      "MINUTA (Tabla4)": "Mismo esquema de siempre (RETAIL, FECHA, CLIENTE, COD_LOCAL, DESCRIPCION_LOCAL, COD_CENCOSUD, DESCRIPCION_PRODUCTO, STOCK(Un), QUIEBRES, INMOVILZIADO, NEGATIVO) + Tabla6 embebida (CADENA/SUFIJO/SUFIJO2/OBSERVACION). En la corrida de sesion 15 solo tenia MAILEMU MIEL (42 filas) -- el usuario parece estar generando este archivo liviano UN CLIENTE A LA VEZ, a diferencia del archivo pesado que traia varios clientes juntos.",
+      "PLANTILLA": "Igual esquema de salida de siempre, vacia hasta que se ejecuta la sintesis.",
+      "nota_importante": "NINGUNA hoja de este archivo tiene formulas (confirmado). Es 100% valores pegados. Esto significa que NO hace falta recalcular nada antes de guardar -- eliminar el paso de CalculateFullRebuild fue clave para que la ejecucion funcionara rapido y sin crash (ver bug corregido abajo)."
+    },
+    "bug_corregido_en_esta_sesion": {
+      "descripcion": "La exclusion de productos 'LIBRO' para TNOGAL (pendiente desde sesion 8) solo se habia aplicado a las filas provenientes de MINUTA. Los productos tipo libro en realidad aparecian via el panel OSA (no via MINUTA), asi que se seguian colando 3 filas con 'LIBRO...' en la version anterior de PLANTILLA (la del archivo pesado, 73 filas, generada al cierre de la sesion 14/inicio de la 15).",
+      "fix": "La exclusion 'if cliente=='TNOGAL' and 'LIBRO' in producto' ahora se aplica en AMBOS lados: al armar minuta_rows Y al armar osa_rows, antes de agruparlos.",
+      "pendiente": "El archivo PESADO (02_MINUTAS_CLIENTES.xlsm) todavia tiene la version CON el bug en su PLANTILLA (73 filas, generada antes del fix). Sincronizar/corregir ahi tambien si se sigue usando ese archivo para algo."
+    },
+    "cambios_de_texto_aplicados_sesion14_15": {
+      "SIN_VISITA_renombrado_a_SEGUIMIENTO": "Antes: 'SIN VISITA | Revisar local.' Sesion 14/15: 'SEGUIMIENTO | Verificar visita y disponibilidad en local.' -- pedido explicito del usuario: no exponer 'SIN VISITA' de forma literal porque el cliente tambien ve la planilla. TEXTO VIGENTE ACTUALIZADO EN SESION 20 (ver 'cambios_de_texto_sesion20'): ahora es 'SEGUIMIENTO | Verificar disponibilidad en local.' (sin 'visita y').",
+      "OSA_accion_actualizada": "Antes: 'Levantar solicitud de revisión.' Ahora: 'Verificar visita y stock actualizado.' -- mismo pedido de discrecion, ejemplo dado literal por el usuario. Sigue vigente sin cambios."
+    },
+    "cambios_de_texto_sesion20": {
+      "SEGUIMIENTO_mas_general": "Texto VIGENTE (reemplaza el de sesion 14/15): 'SEGUIMIENTO | Verificar disponibilidad en local.' -- el usuario pidio quitar la palabra 'visita' para dejarlo mas general cuando no hay visita registrada. Aplicado en build_plantilla_v4.py (variable ACCIONES['SEGUIMIENTO']) y regenerado en PLANTILLA (51 filas, GRANA+MAILEMU MIEL, sin cambios de conteo, solo de texto)."
+    },
+    "script_usado": "build_plantilla_v3.py (variante robusta: detecta columnas por NOMBRE via ListObjects en vez de posicion fija, ya que la estructura de DINAMICA se rompio una vez por un cambio de columnas del usuario -- leccion aplicada). Sin CalculateFullRebuild (innecesario, archivo sin formulas). DispatchEx (instancia Excel independiente). Backup previo del archivo liviano.",
+    "resultado_sesion15": {
+      "cliente_procesado": "MAILEMU MIEL (unico presente en MINUTA de este archivo)",
+      "filas_escritas": 26,
+      "por_cadena": {
+        "WALMART": 12,
+        "CENCOSUD": 14
+      },
+      "verificacion": "0 duplicados, 0 'LIBRO', 0 residuos '.0', 0 texto viejo 'SIN VISITA'. Cruce WALMART con sufijos EX/HI verificado correcto (normalizado a codigo numerico, ej. 613, 605, 33, 624)."
+    },
+    "leccion_de_ejecucion_para_archivos_grandes": "Cuando un archivo de trabajo crece mucho (decenas de MB, decenas de miles de filas), preferir exportar/sintetizar un archivo liviano de solo-valores para las automatizaciones de escritura repetida (como PLANTILLA), en vez de forzar CalculateFullRebuild sobre el archivo completo cada vez -- eso fue lo que empezo a crashear. Si una hoja de destino (como PLANTILLA) no tiene formulas, NO llamar a CalculateFullRebuild antes de guardar, es puro riesgo sin beneficio."
+  },
+  "hallazgos_clave": [
+    "1) REPORTES ya neutraliza el doble conteo de 'visitas' cuando hay varios reportes el mismo dia para el mismo local+marca (formula VISITA = 1/COUNTIFS), pero no arbitra CUAL reporte es el de mejor calidad/valido para auditoria.",
+    "2) OSA es donde vive el problema central pedido por el usuario: hasta 5 registros por semana para el mismo SKU+Local, sin regla de consolidacion. No existe hoy una definicion de 'estado semanal vigente' por SKU/Local.",
+    "3) El caso mas delicado (stock segun B2B existe pero terreno marca faltante) ya esta pre-calculado por la fuente en la columna Discrepancia='QUIEBRE (habia stock B2B)' (4774 casos en la semana revisada) y aislado en OSA_FOCO. Falta decidir como tratarlo cuando se repite varias veces en la semana vs una sola vez.",
+    "4) La columna 'STOCK_B2B' en OSA no contiene lo que su nombre sugiere (contiene una hora, no un indicador de stock) -- confirmar con el usuario el origen/proposito real de esa columna antes de construir logica sobre ella.",
+    "5) La ventana semanal de RUTA_RUTERO (d1..d7) se define dinamicamente como 'las ultimas 7 fechas con datos en REPORTES', no como semana calendario fija -- y la columna OSA de RUTA_RUTERO no respeta ni esa ventana ni ninguna otra (suma historico completo de la hoja OSA). Ambas cosas dependen de que REPORTES y OSA se sigan limpiando/reemplazando cada semana para seguir siendo validas.",
+    "6) REPORTES y OSA hoy solo contienen la semana ISO 33 (2026-08-10 a 2026-08-16/15). No hay evidencia todavia de como se preserva el historico de semanas anteriores una vez se refresca el archivo -- riesgo de perdida de trazabilidad semanal si no se archiva antes de cada actualizacion."
+  ],
+  "decisiones_tomadas": [
+    {
+      "tema": "Consolidacion semanal de OSA",
+      "decision": "DEBEN CONVIVIR AMBAS SENALES: (a) estado vigente = ULTIMO registro cronologico de la semana por (Codigo/SKU, Producto, Local), y (b) recurrencia = cuantas veces broto la misma Discrepancia ('QUIEBRE (habia stock B2B)' u otra != OK) en esa semana para ese mismo SKU+Local. Si el ultimo registro sigue en discrepancia Y ademas es recurrente (se repite en 2+ visitas), es ALERTA CRITICA. Fuente: usuario, 2026-08-17."
+    },
+    {
+      "tema": "Duplicados en REPORTES",
+      "decision": "No se necesita arbitrar 'cual reporte es el oficial' entre IDs duplicados del mismo dia. Lo que importa para control es UNA sola cosa: que EXISTA respaldo fotografico (foto) para la visita/tarea. El foco de REPORTES es verificar existencia de evidencia, no resolver cual de los duplicados es mejor. Fuente: usuario, 2026-08-17."
+    },
+    {
+      "tema": "Columna STOCK_B2B en OSA",
+      "decision": "Confirmado por el usuario: fue un error de pegado de datos (la columna vieja 'STOCK_B2B' en realidad contenia la Hora). Ya fue corregido en el archivo real (fuera de esta sesion, Claude no escribio nada): la columna vieja se renombro a 'Hora' y se agrego 'STOCK_B2B2' = IFERROR([@[Stock B2B congelado]]/1000,0), verificado en el archivo el 2026-08-17. Pendiente menor: confirmar si 'STOCK_B2B2' se dejara con ese nombre o se renombrara."
+    },
+    {
+      "tema": "Alcance del proyecto / historico",
+      "decision": "Por ahora ACOTAR el desarrollo solo al universo de la semana vigente (REPORTES + OSA + RUTA_RUTERO tal cual estan). NO construir todavia un mecanismo de archivo/historico semanal -- se confia en que el pegado de datos semana a semana se hace correctamente. La logica de alertas semanales se construye sobre este universo acotado; la escalabilidad/historizacion se aborda mas adelante, en una etapa futura. Fuente: usuario, 2026-08-17."
+    },
+    {
+      "tema": "Nombre y significado de STOCK_B2B2 en OSA",
+      "decision": "Renombrar 'STOCK_B2B2' a 'STOCK_B2B' (limpio, sin sufijo), ya que el nombre correcto quedo libre al renombrarse la columna vieja a 'Hora'. Significado: 'Stock B2B congelado' trae un error de descarga de la fuente que SIEMPRE multiplica el valor real x1000; STOCK_B2B (=Stock B2B congelado/1000) corrige ese bug y refleja el stock real en UNIDADES. El usuario lo detecto porque el stock real casi nunca supera 100 unidades por SKU/local, mientras los valores crudos (ej. 80000, 315000, 26000) eran evidentemente ese error. Pendiente de EJECUCION (renombrar la columna en el archivo), requiere autorizacion explicita antes de escribir en el .xlsm. Fuente: usuario, 2026-08-17."
+    }
+  ],
+  "decisiones_pendientes": [
+    "OPTIMIZACION_MINUTA: confirmar con el usuario si perdio cambios sin guardar en 01_RUTA_RUTEROS.xlsm o 10_MARCAS_CLAVES_Y_ACCESOS.xlsx por el crash de Excel de la sesion 6 (ver 'PLANTILLA_reconstruida_sesion6.bugs_encontrados_y_corregidos_durante_la_ejecucion').",
+    "OPTIMIZACION_MINUTA: confirmar si SIN VISITA/OSA deben aplicar a TODOS los comerciales que pasen por este archivo, o si se debe restringir por comercial (hoy se aplico a FROZT y TNOGAL por igual, sin distincion).",
+    "OPTIMIZACION_MINUTA: revisar con el usuario si el texto final de Observacion (discreto: 'Revisar local.' / 'Levantar solicitud de revisión.') le sirve tal cual para el envio al cliente, o requiere ajustes de tono.",
+    "OPTIMIZACION_MINUTA: EJECUTAR (pendiente, solo quedo anotado como comentario) el filtro de exclusion de productos 'LIBRO' para TNOGAL en la proxima reconstruccion de PLANTILLA -- ver regla nueva en 'reglas_de_negocio_definidas_por_el_usuario_sesion6'."
+  ],
+  "OSA_alerta_dual_IMPLEMENTADA": {
+    "estado": "EJECUTADO Y GUARDADO en el archivo real 02_MINUTAS_CLIENTES.xlsm, hoja OSA / Tabla3. Fecha ejecucion: 2026-08-17. Autorizado explicitamente por el usuario ('vamos con todo... ya tengo la copia de esto').",
+    "metodo_usado": "Automatizacion COM de Excel real (win32com.client, Application.Dispatch('Excel.Application')), NO openpyxl. Se eligio COM especificamente para no arriesgar la PivotTable 'TablaDinamica7' (hoja DINAMICA), la formula de array dinamico SORT/UNIQUE en RUTA_RUTERO!AQ1, ni el proyecto VBA -- openpyxl reconstruye el XML completo al guardar y es conocido por corromper/perder PivotTables y metadata de arrays dinamicos; COM usa el motor real de Excel y preserva todo intacto (verificado despues, ver 'verificacion_post_escritura').",
+    "backup_creado_antes_de_escribir": "memoria_claude/BACKUP_02_MINUTAS_CLIENTES_20260817_112411.xlsm (copia de seguridad adicional hecha por Claude, ademas de la copia propia que ya tenia el usuario).",
+    "clave_agrupacion": "Codigo + Producto + Local (grano de OSA).",
+    "columna_renombrada": "STOCK_B2B2 -> STOCK_B2B (segun decision tomada).",
+    "columnas_nuevas_agregadas_en_Tabla3_OSA_orden": [
+      "HORA_ES_PM",
+      "HORA_HH",
+      "HORA_24",
+      "FECHA_HORA",
+      "ULTIMA_FECHA_HORA_SEMANA",
+      "ES_ULTIMO_REGISTRO",
+      "RECURRENCIA_SEMANA",
+      "ALERTA_CRITICA"
+    ],
+    "formulas_finales_aplicadas": {
+      "HORA_ES_PM": "=IFERROR(ISNUMBER(SEARCH(\"p.\",Tabla3[[#This Row],[Hora]])),FALSE)  -> TRUE si el texto de Hora contiene 'p.' (p. m.).",
+      "HORA_HH": "=IFERROR(VALUE(LEFT(TRIM(Tabla3[[#This Row],[Hora]]),FIND(\":\",TRIM(Tabla3[[#This Row],[Hora]]))-1)),0)  -> extrae la hora numerica (1 o 2 digitos) antes de los ':'.",
+      "HORA_24": "=IFERROR(TIMEVALUE(LEFT(TRIM(Tabla3[[#This Row],[Hora]]),FIND(\" \",TRIM(Tabla3[[#This Row],[Hora]]))-1))+IF(AND(Tabla3[[#This Row],[HORA_ES_PM]],Tabla3[[#This Row],[HORA_HH]]<>12),0.5,0)-IF(AND(NOT(Tabla3[[#This Row],[HORA_ES_PM]]),Tabla3[[#This Row],[HORA_HH]]=12),0.5,0),0)  -> convierte el texto de Hora (formato '10:53:58 p. m.') a fraccion de dia 0-1, corrigiendo 12-horas a 24-horas.",
+      "FECHA_HORA": "=Tabla3[[#This Row],[Fecha]]+Tabla3[[#This Row],[HORA_24]]  -> serial ordenable Fecha+Hora, es el desempate para 'ultimo registro' cuando hay 2+ visitas el mismo dia.",
+      "ULTIMA_FECHA_HORA_SEMANA": "=MAXIFS(Tabla3[FECHA_HORA],Tabla3[Código],Tabla3[[#This Row],[Código]],Tabla3[Producto],Tabla3[[#This Row],[Producto]],Tabla3[Local],Tabla3[[#This Row],[Local]])",
+      "ES_ULTIMO_REGISTRO": "=IF(Tabla3[[#This Row],[FECHA_HORA]]=Tabla3[[#This Row],[ULTIMA_FECHA_HORA_SEMANA]],1,0)",
+      "RECURRENCIA_SEMANA": "=COUNTIFS(Tabla3[Código],Tabla3[[#This Row],[Código]],Tabla3[Producto],Tabla3[[#This Row],[Producto]],Tabla3[Local],Tabla3[[#This Row],[Local]],Tabla3[Discrepancia],\"<>OK\")-COUNTIFS(Tabla3[Código],Tabla3[[#This Row],[Código]],Tabla3[Producto],Tabla3[[#This Row],[Producto]],Tabla3[Local],Tabla3[[#This Row],[Local]],Tabla3[Discrepancia],\"\")  -> cuenta cuantas veces broto una Discrepancia != OK en la semana para esa clave, excluyendo filas sin dato.",
+      "ALERTA_CRITICA": "=IF(AND(Tabla3[[#This Row],[ES_ULTIMO_REGISTRO]]=1,Tabla3[[#This Row],[Discrepancia]]<>\"OK\",Tabla3[[#This Row],[RECURRENCIA_SEMANA]]>=2),1,0)  -> 1 solo cuando el ULTIMO registro de la semana sigue en discrepancia Y ademas se repitio 2+ veces esa semana. Esta es la senal dual que pidio el usuario."
+    },
+    "nota_tecnica_importante_sintaxis": "Se uso la forma LARGA de referencia estructurada 'Tabla3[[#This Row],[Columna]]' en vez del alias corto '[@Columna]'. Motivo: al escribir formulas por COM, el alias corto FALLA (error COM generico -2146827284) cuando la formula referencia una columna recien creada en el mismo script, aunque la formula sea sintacticamente valida y funcione perfecto si se escribe a mano en Excel. La forma larga (que ademas es la que ya usaba el archivo original en sus formulas existentes) funciona siempre. Guardar este hallazgo para cualquier futura escritura de formulas por COM en este archivo.",
+    "resultado_primera_corrida": {
+      "fecha_ejecucion": "2026-08-17",
+      "filas_totales_OSA": 51276,
+      "errores_de_formula": "0 en las 8 columnas nuevas (verificado celda por celda).",
+      "alertas_criticas_detectadas": 1304,
+      "ejemplos": "Ej: Codigo=J504, Producto=HOJAS DE PARRA SUK 650 GR, Local=J504-JUMBO RANCAGUA, Discrepancia='QUIEBRE (habia stock B2B)', Recurrencia=2 -> ALERTA_CRITICA=1."
+    },
+    "verificacion_post_escritura": {
+      "metodo": "Reapertura del archivo real (solo lectura) via COM despues de guardar, para confirmar que nada se corrompio.",
+      "resultado": "OK. Las 5 hojas presentes. PivotTable 'TablaDinamica7' en DINAMICA intacta. Tablas Tabla1/Tabla3/Tabla4/Tabla5 intactas con rangos correctos (Tabla3 ahora A1:X51277, 24 columnas). Formula de array dinamico RUTA_RUTERO!AQ1 intacta (=SORT(UNIQUE(Tabla1[[#All],[Fecha]]),1,-1)) y AQ2:AQ8 siguen devolviendo las 7 fechas correctas. VBProject no se pudo leer por politica de seguridad de Excel ('acceso mediante programacion al proyecto de VB no es de confianza') -- esto es una restriccion de permisos, NO evidencia de corrupcion; el modulo VBA nunca fue tocado por el script."
+    },
+    "pendiente_bloqueante_para_uso_diario": "RESUELTO en la sesion 4 (ver mas abajo). Se ajusto el umbral."
+  },
+  "OSA_alerta_dual_AJUSTE_UMBRAL_sesion4": {
+    "estado": "EJECUTADO Y GUARDADO. Fecha: 2026-08-17.",
+    "cambio_pedido_por_usuario": "El usuario detecto que exigir RECURRENCIA_SEMANA>=2 dejaba afuera a los SKU/Local que solo tienen UNA visita en toda la semana y esa unica visita ya fallo (nunca podian llegar a 2 repeticiones). Pidio bajar el umbral a >=1 y ademas agregar que solo cuente si habia stock real (para no alertar cuando el 'no' de OSA es esperado por falta de stock).",
+    "formula_ALERTA_CRITICA_actualizada": "=IF(AND(Tabla3[[#This Row],[ES_ULTIMO_REGISTRO]]=1,Tabla3[[#This Row],[Discrepancia]]<>\"OK\",Tabla3[[#This Row],[RECURRENCIA_SEMANA]]>=1,Tabla3[[#This Row],[STOCK_B2B]]<>0),1,0)",
+    "diferencia_vs_version_anterior": "Umbral de RECURRENCIA_SEMANA baja de >=2 a >=1 (asi una sola falla en la unica visita de la semana SI alerta). Se agrega condicion Tabla3[STOCK_B2B]<>0 (columna ya corregida = Stock B2B congelado/1000) para excluir discrepancias donde en realidad no habia stock que gestionar.",
+    "resultado": "Alertas criticas subieron de 1304 a 2066 de 51276 filas totales en OSA. 0 errores de formula verificados.",
+    "nota_columna_recurrencia": "RECURRENCIA_SEMANA sigue calculando lo mismo (cuenta cuantas veces esa clave tuvo Discrepancia<>OK en la semana); solo cambio el umbral usado dentro de ALERTA_CRITICA, no la formula de RECURRENCIA_SEMANA en si."
+  },
+  "DINAMICA_dos_paneles_de_control": {
+    "estado": "DESCUBIERTO en sesion 4 que ya existe (no fue creado por Claude) y REFRESCADO por Claude para reflejar los datos actuales.",
+    "hallazgo": "La hoja DINAMICA ya contenia, ademas de la tabla dinamica original de 'salas sin visita', una SEGUNDA tabla dinamica para 'complicaciones de OSA' -- aparentemente construida por el usuario directamente en Excel en paralelo a esta conversacion, usando la columna ALERTA_CRITICA que Claude habia agregado a Tabla3/OSA. Claude NO creo esta tabla dinamica, solo la detecto, la reviso y la refresco para que muestre los numeros ya corregidos (2066 alertas).",
+    "TablaDinamica7": {
+      "proposito": "Salas SIN visita en la semana.",
+      "fuente": "Tabla4 (RUTA_RUTERO)",
+      "filtro": "VISITA_0 = 1 (solo item '1' visible, verificado)",
+      "filas": "COD KPI ONE, COD B2B, LOCAL, GESTORES, CLIENTE",
+      "datos": "Suma de VECES POR SEMANA, Suma de FALTANTE",
+      "total_general_actual": "737 visitas exigidas totalmente incumplidas (FALTANTE=-737)."
+    },
+    "TablaDinamica1": {
+      "proposito": "Locales/SKU con complicaciones de OSA al momento de la visita (alerta critica).",
+      "fuente": "Tabla3 (OSA)",
+      "filtro": "ALERTA_CRITICA = 1 (solo item '1' visible, verificado)",
+      "filas": "Producto, Marca/Campana, Local, Codigo",
+      "columnas": "Fecha",
+      "datos": "Suma de STOCK_B2B",
+      "nota": "Ya usa el umbral corregido (recurrencia>=1, stock<>0) porque se refresco DESPUES del ajuste de formula."
+    },
+    "verificacion_tecnica_importante": "Al leer el filtro con la propiedad pf.CurrentPage/pf.CurrentPageName via COM aparecian resultados inconsistentes o con error (falso indicio de que el filtro se habia reseteado a '(Todo)' tras el RefreshTable). La verificacion confiable fue revisar pf.PivotItems(i).Visible directamente: en ambas tablas solo el item '1' esta visible, o sea el filtro SI esta intacto. Guardar este hallazgo: no confiar en CurrentPage/CurrentPageName por COM en este archivo, usar PivotItems(i).Visible."
+  },
+  "propuesta_disenada_REPORTES_respaldo_fotografico": {
+    "estado": "ANALIZADO -- conclusion: NO hace falta construir nada nuevo.",
+    "razonamiento": "El usuario pidio que el control clave de REPORTES sea 'que exista fotografia'. Eso ya esta resuelto estructuralmente por el circuito REPORTES -> VISITA -> RUTA_RUTERO: la formula VISITA en REPORTES solo genera valor >0 cuando existe al menos 1 fila (=1 foto) para ese Codigo Local+Marca+Fecha, y RUTA_RUTERO ya suma eso en TOTAL/DELTA/FALTANTE/VISITA_0 (y DINAMICA ya filtra los casos de VISITA_0=1, es decir CERO fotos/visitas en la semana). No se necesita una columna o control adicional: el indicador de 'existe fotografia' YA es, en la practica, TOTAL>0 (o el complemento de VISITA_0) para cada Local+Marca en RUTA_RUTERO/DINAMICA.",
+    "siguiente_paso_opcional": "Si mas adelante se quiere subir la vara de 'existe fotografia' a 'existe fotografia COMPLETA' (ej. Antes + Despues + Panoramica, no solo 1 foto suelta), ahi si haria falta una columna nueva en REPORTES/RUTA_RUTERO contando Tipo de Tarea distintos por visita. Por ahora el usuario indico que solo importa la existencia, no la completitud -- no construir esto todavia."
+  },
+  "proximos_pasos_sugeridos": [
+    "Pedir autorizacion al usuario para: (a) renombrar 'STOCK_B2B2' -> 'STOCK_B2B', (b) escribir las columnas auxiliares de 'propuesta_disenada_OSA_alerta_dual' en Tabla3 (probando antes en copia/rango de prueba).",
+    "Validar con el usuario el caso limite de 2 registros el mismo dia para la misma clave (Codigo+Producto+Local) en OSA -- hoy ES_ULTIMO_REGISTRO asume 1 por dia; si existe, definir desempate por Hora (normalizar formato primero, hoy es texto raro con caracteres invisibles).",
+    "Proponer version de la formula OSA en RUTA_RUTERO que SI filtre por la misma ventana de fechas que usan d1..d7 (AQ2:AQ8), para que sea consistente con el resto del control semanal (mejora deseable, no urgente, no bloquea la alerta de OSA).",
+    "Con estas piezas (alerta OSA dual ya disenada, respaldo fotografico REPORTES ya resuelto via RUTA_RUTERO/DINAMICA existente) armar una propuesta de 'tablero semanal de trazabilidad' -- siempre pidiendo autorizacion antes de escribir en el archivo original .xlsm."
+  ],
+  "historial_sesiones": [
+    {
+      "fecha": "2026-08-17",
+      "resumen": "Primera sesion. Se inspecciono en solo-lectura la estructura completa de 02_MINUTAS_CLIENTES.xlsm (5 hojas, 4 tablas Excel) sin modificar el archivo. Se documentaron formulas clave de REPORTES, OSA y RUTA_RUTERO, se identifico el mecanismo de ventana semanal dinamica, y se aislo el caso delicado de discrepancia stock-vs-faltante (columna Discrepancia/OSA_FOCO en OSA). Se creo esta memoria JSON central en memoria_claude/memoria_proyecto.json.",
+      "sin_resolver": "Reglas de consolidacion semanal para OSA (ultimo vs persistente) y para duplicados en REPORTES; confirmar contenido real de columna STOCK_B2B; confirmar politica de archivo historico semanal.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON completo antes de responder, preguntar al usuario las decisiones_pendientes listadas arriba, y si ya hay respuesta, avanzar con proximos_pasos_sugeridos (siempre en modo lectura/propuesta hasta que el usuario autorice escribir en el archivo)."
+    },
+    {
+      "fecha": "2026-08-17",
+      "resumen": "Segunda sesion (mismo dia, continuacion). El usuario resolvio las 4 decisiones_pendientes de la sesion 1 (ver 'decisiones_tomadas'): (1) en OSA conviven ultimo-registro + recurrencia, y ambas en discrepancia = alerta critica; (2) en REPORTES lo unico relevante es que exista respaldo fotografico, no arbitrar entre duplicados; (3) confirmo que STOCK_B2B era error de pegado (era Hora) y ya corrigio el archivo por su cuenta agregando la columna 'STOCK_B2B2' = IFERROR([@[Stock B2B congelado]]/1000,0); (4) decidio acotar el desarrollo solo al universo semanal vigente, sin construir historico/archivo por ahora, confiando en el pegado correcto de datos; la escalabilidad se vera despues. Se releyo el archivo real y se verifico que el cambio de columnas (STOCK_B2B -> Hora, + STOCK_B2B2 nueva) ya estaba aplicado en el .xlsm por el usuario, fuera de Claude. Claude sigue sin escribir nada en el archivo.",
+      "sin_resolver": "Nombre definitivo de STOCK_B2B2 y su unidad exacta (/1000 = ¿que unidad?). Diseno concreto (formulas propuestas) de la tabla de alerta dual en OSA y del chequeo de respaldo fotografico en REPORTES -- aun no construido, solo planificado en proximos_pasos_sugeridos.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, y avanzar directamente a construir/proponer las formulas concretas de: (a) alerta OSA (ultimo registro + recurrencia + bandera critica) y (b) chequeo de respaldo fotografico en REPORTES, siempre en modo propuesta hasta recibir autorizacion explicita para escribir en el .xlsm original."
+    },
+    {
+      "fecha": "2026-08-17",
+      "resumen": "Tercera sesion (mismo dia, continuacion). El usuario autorizo explicitamente escribir en el archivo real ('vamos con todo... ya tengo la copia de esto') y pidio resolver el desempate por Hora para ES_ULTIMO_REGISTRO. Claude: (1) hizo un backup adicional del archivo antes de tocar nada (memoria_claude/BACKUP_02_MINUTAS_CLIENTES_20260817_112411.xlsm); (2) implemento la alerta dual de OSA usando AUTOMATIZACION COM DE EXCEL REAL (no openpyxl) para no arriesgar la PivotTable, el array dinamico SORT/UNIQUE de RUTA_RUTERO ni el proyecto VBA; (3) tuvo que depurar un problema real de sintaxis: el alias corto '[@Columna]' falla por COM al referenciar columnas recien creadas, la forma larga 'Tabla3[[#This Row],[Columna]]' (la misma que ya usaba el archivo) funciona siempre -- documentado para el futuro; (4) renombro STOCK_B2B2 -> STOCK_B2B y agrego 8 columnas nuevas a Tabla3/OSA (HORA_ES_PM, HORA_HH, HORA_24, FECHA_HORA, ULTIMA_FECHA_HORA_SEMANA, ES_ULTIMO_REGISTRO, RECURRENCIA_SEMANA, ALERTA_CRITICA); (5) recalculo el workbook completo, guardo, y verifico 0 errores de formula; (6) reabrio el archivo despues de guardar para confirmar que la PivotTable, el array dinamico y las tablas siguen intactas -- todo OK. Resultado: 1304 filas de 51276 quedaron marcadas ALERTA_CRITICA=1 en la semana vigente (ISO 33, 2026-08-10 a 2026-08-16). Detalle completo de formulas y resultados en 'OSA_alerta_dual_IMPLEMENTADA'.",
+      "sin_resolver": "Falta que el usuario revise los 1304 casos de ALERTA_CRITICA y confirme si el umbral de recurrencia (>=2 visitas con discrepancia) es el correcto o prefiere ajustarlo. Sigue pendiente (no bloqueante, baja prioridad) la mejora a la formula OSA de RUTA_RUTERO para que filtre por la misma ventana de 7 fechas que usan d1..d7. El chequeo de respaldo fotografico en REPORTES se dejo resuelto conceptualmente (usa TOTAL/VISITA_0 ya existentes), no requirio cambios en el archivo.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. Preguntar al usuario si ya reviso los resultados de ALERTA_CRITICA y si el umbral esta bien. Si pide ajustes, modificar las formulas ya escritas en Tabla3 (mismo metodo COM, misma sintaxis de referencia larga). Si todo esta conforme, ofrecer avanzar con la mejora opcional de la formula OSA en RUTA_RUTERO o con un tablero resumen semanal."
+    },
+    {
+      "fecha": "2026-08-17",
+      "resumen": "Cuarta sesion (mismo dia, continuacion). El usuario ajusto el criterio de ALERTA_CRITICA: bajo RECURRENCIA_SEMANA de >=2 a >=1 (para no dejar afuera locales con una sola visita en la semana que ya fallo) y agrego condicion STOCK_B2B<>0 (solo alertar si de verdad habia stock que gestionar). Claude aplico el cambio en Tabla3/OSA via el mismo metodo COM, resultado: 1304 -> 2066 alertas, 0 errores. Ademas, el usuario pidio revisar la hoja DINAMICA porque 'tiene estas correcciones tanto para salas sin visita, las que tienen complicaciones con el OSA'. Al inspeccionar se descubrio que la hoja YA tenia una SEGUNDA tabla dinamica ('TablaDinamica1', fuente Tabla3, filtrada por ALERTA_CRITICA=1) ademas de la original ('TablaDinamica7', fuente Tabla4, filtrada por VISITA_0=1) -- construida aparentemente por el usuario en paralelo, en su propio Excel, usando la columna que Claude habia creado. Claude no la creo, solo la detecto, la refresco (RefreshTable + recalculo completo + guardado) para que reflejara el umbral corregido, y verifico que el filtro seguia intacto (metodo confiable: PivotItems(i).Visible, ya que CurrentPage/CurrentPageName dieron resultados enganosos via COM). Se hicieron 2 verificaciones de integridad completas durante la sesion, ambas OK (PivotTables, array dinamico SORT/UNIQUE, tablas, todo intacto).",
+      "sin_resolver": "Nada bloqueante. Sigue pendiente (baja prioridad, no urgente) la mejora opcional a la formula OSA de RUTA_RUTERO para que filtre por la misma ventana de fechas que d1..d7.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. El usuario parece estar trabajando el archivo tanto por su cuenta en Excel como via Claude en la misma sesion -- SIEMPRE verificar el estado actual del archivo (reabrir y revisar estructura) antes de asumir que sigue igual a la ultima vez que Claude escribio, porque puede haber cambios manuales del usuario en el medio. Preguntar si los 2066 casos de ALERTA_CRITICA y el panel TablaDinamica1 ya cumplen lo que necesita, o si quiere seguir iterando (ej. umbral de recurrencia, agregar mas campos a la tabla dinamica, o construir el tablero resumen semanal combinando ambos paneles)."
+    },
+    {
+      "fecha": "2026-08-17",
+      "resumen": "Quinta sesion (mismo dia, continuacion). El usuario presento una SEGUNDA capa del proyecto: 'OPTIMIZACION_MINUTA', con contexto en un JSON externo generado por ChatGPT (H:\\Mi unidad\\CLIENTES\\OPTIMIZACIÓN_MINUTA\\00_CONTEXTO_OPTIMIZACION_MINUTA.json), que define como transformar informes comerciales semanales de varios clientes en una planilla de minutas por local. Dentro de 02_MINUTAS_CLIENTES.xlsm aparecieron dos hojas nuevas (no creadas por Claude, agregadas por el usuario entre sesiones): MINUTA (datos pegados de KPI de venta/stock -- QUIEBRES, INMOVILIZADO, NEGATIVO -- para FROZT y TNOGAL) y PLANTILLA (la salida final con el esquema del JSON externo, pero con datos OBSOLETOS de ejemplo de otros comerciales que no son foco ahora). Claude SOLO leyo ambos archivos (JSON externo + hojas MINUTA/PLANTILLA/DINAMICA), sin ejecutar ni escribir nada, y documento todo en la nueva seccion 'proyecto_OPTIMIZACION_MINUTA' de esta memoria: el contrato de indicadores y validacion, el estado actual de MINUTA y PLANTILLA, y el riesgo tecnico principal detectado (falta definir la clave de cruce confiable entre el OSA de nuestra propia hoja DINAMICA/Tabla3 y los datos de MINUTA, que usan esquemas de codigo de local distintos). Se confirmo tambien que REPORTES/OSA/RUTA_RUTERO ya fueron refrescados por el usuario a un nuevo ciclo centrado en TNOGAL (visible en el contenido actual de DINAMICA).",
+      "sin_resolver": "TODO el plan de reconstruccion de PLANTILLA sigue sin ejecutar (a proposito, el usuario pidio explicitamente NO ejecutar nada todavia). Falta: (1) definir la clave de cruce entre DINAMICA/OSA y MINUTA para poder incorporar el indicador OSA de TNOGAL; (2) confirmar el numero de Semana ISO correcto para este ciclo (MINUTA trae fechas 17 y 18 de agosto 2026, distinto a la Semana 33 del ejemplo viejo en PLANTILLA); (3) confirmar si Gestor/Supervisor se completan por cruce con RUTA_RUTERO o quedan en blanco; (4) autorizacion explicita para borrar los datos actuales de PLANTILLA y para escribir la reconstruccion.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON completo, especialmente 'proyecto_OPTIMIZACION_MINUTA'. Antes de ejecutar nada, resolver con el usuario el riesgo_tecnico_principal (clave de cruce OSA<->MINUTA) y las demas decisiones_pendientes de esta capa. Una vez resueltas, seguir el 'plan_propuesto_NO_EJECUTADO' paso a paso, siempre con autorizacion explicita antes de escribir en el archivo real, usando el mismo metodo COM ya validado (nunca openpyxl para este archivo, por la PivotTable y el array dinamico)."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Sexta sesion. El usuario resolvio el riesgo tecnico principal el mismo agregando 'Tabla6' en MINUTA (mapa CADENA->prefijos de DINAMICA, 'dejar numerico' o 'conservar'), y definio las reglas de negocio completas: agrupar por (CLIENTE,CADENA,COD_LOCAL), prioridad SIN VISITA > OSA (ambos de DINAMICA, predominan) > STOCK NEGATIVO > INMOVILIZADO (de MINUTA), QUIEBRES omitido, OSA suprime INMOVILIZADO del mismo SKU/local, textos de Observacion discretos porque el cliente tambien los ve. Tras una vuelta de preguntas (agregar columna Marca si/no, texto de SIN VISITA), Claude hizo un dry-run completo en Python, encontro y arreglo un bug real (codigos duplicados por floats de COM sin normalizar), y ejecuto la escritura real via COM. La primera escritura fue exitosa pero con el bug (50 filas, 1 duplicado); al reintentar CORREGIDO, Excel se desconecto/crasheo durante el guardado tras un recalculo de 358s, y esto aparentemente se llevo tambien la sesion de Excel del usuario (que tenia 01_RUTA_RUTEROS.xlsm y 10_MARCAS_CLAVES_Y_ACCESOS.xlsx abiertos) -- se le aviso al usuario de inmediato sobre posible perdida de cambios no guardados en esos archivos. Se identifico la causa (Dispatch() se adjunta a instancias de Excel ya corriendo) y se corrigio a DispatchEx() para forzar una instancia independiente; el reintento con esa correccion funciono limpio (47s, sin choques). Resultado final: PLANTILLA reconstruida con 49 filas (FROZT 10, TNOGAL 39), sin duplicados, sin errores de formula, integridad del archivo verificada completa (pivots, array dinamico, todas las tablas incl. Tabla6).",
+      "sin_resolver": "Confirmar con el usuario si hubo perdida real de cambios en sus otros archivos por el crash. Confirmar si SIN VISITA/OSA deben limitarse a ciertos comerciales o aplicar parejo a todos. Revisar tono final de los textos de Observacion antes de que el cliente los vea en produccion.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'PLANTILLA_reconstruida_sesion6'. Preguntar primero por el estado de 01_RUTA_RUTEROS.xlsm/10_MARCAS_CLAVES_Y_ACCESOS.xlsx. Para cualquier automatizacion futura de Excel en este proyecto, usar SIEMPRE DispatchEx (nunca Dispatch simple) y verificar si el usuario tiene Excel abierto antes de lanzar procesos largos."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Septima sesion (mismo dia, continuacion breve). El usuario corrigio un error de datos: en el panel OSA/ALERTA_CRITICA de DINAMICA, el campo 'Codigo' es el codigo del LOCAL, no un SKU de producto (no existe SKU de producto real en ese panel). La version anterior de PLANTILLA mostraba por error ese codigo como si fuera 'SKU:'. Claude corrigio las lineas OSA para usar la descripcion del local en vez de 'SKU: {codigo}', dejando intactas las lineas STOCK NEGATIVO/INMOVILIZADO (esas si vienen de MINUTA con SKU real). Se hizo backup antes de escribir (memoria_claude/BACKUP_02_MINUTAS_CLIENTES_20260818_153710.xlsm), se uso el mismo metodo DispatchEx (instancia de Excel independiente, sin choques esta vez, 46s de recalculo), y se verifico: 49 filas, 0 duplicados, 0 ocurrencias de 'SKU:' dentro de una linea OSA.",
+      "sin_resolver": "Las mismas 3 decisiones_pendientes de la sesion 6 (perdida de cambios en archivos del usuario por el crash previo, alcance de SIN VISITA/OSA por comercial, tono final de los textos de cara al cliente) siguen abiertas -- esta sesion solo corrigio el dato de SKU/Local en OSA.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. Confirmar con el usuario si PLANTILLA con este formato ya esta lista para el envio real al cliente, o si faltan mas ajustes de contenido antes de darla por cerrada para el ciclo semana 34."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Octava sesion (mismo dia, continuacion breve, solo comentario -- SIN ejecucion). El usuario pidio dejar anotado que para TNOGAL hay que excluir de los indicadores cualquier producto llamado 'LIBRO' (los productos tipo libro vistos en el panel OSA de DINAMICA para J502/J504/J508). Cerro la sesion con 'ya estamos ready'. Claude SOLO actualizo la memoria con esta regla nueva, no toco el archivo real.",
+      "sin_resolver": "Falta EJECUTAR el filtro de exclusion 'LIBRO' la proxima vez que se reconstruya PLANTILLA para TNOGAL. Ademas siguen abiertas las decisiones_pendientes previas (perdida de cambios en archivos del usuario, alcance SIN VISITA/OSA por comercial, tono final de textos).",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. Antes de la proxima reconstruccion de PLANTILLA para TNOGAL, aplicar el filtro de exclusion de productos que contengan 'LIBRO' (revisar si el filtro debe ser insensible a mayusculas/acentos y si aplica solo a OSA o a cualquier indicador de TNOGAL)."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Novena sesion (mismo dia, continuacion). El usuario pidio disenar como escalar DINAMICA de 'fotografia semanal que se pierde' a algo con memoria real de que se detecto/resolvio y cuando -- pregunto puntualmente si la solucion era mover OSA a RUTA_RUTERO. Claude explico por que RUTA_RUTERO no es el lugar (grano equivocado) y propuso una tabla de trazabilidad nueva; se le pregunto al usuario cadencia de refresh (eligio diario/casi diario) y alcance (eligio los 4 indicadores). El usuario ademas establecio una NUEVA MODALIDAD DE TRABAJO para esta iniciativa: el construye tablas y formulas el mismo en Excel, Claude valida cada pieza antes de seguir a la siguiente (en vez de que Claude escriba todo por COM como se hizo con PLANTILLA), y pidio un plan de menor a mayor. Claude diseño la arquitectura completa (log append-only 'TRAZABILIDAD_LOG' + tabla derivada 'TRAZABILIDAD_ESTADO' con formulas MINIFS/MAXIFS/COUNTIFS, sin necesidad de macros ni scripts) y un plan de 5 fases, quedando todo registrado en 'diseno_escalamiento_TRAZABILIDAD'. NADA se ejecuto en el archivo real esta sesion, es solo diseño.",
+      "sin_resolver": "Todo el plan de 5 fases sigue sin construir. La FASE 1 (traducir el cruce Tabla6+MINUTA+DINAMICA de Python a formulas de Excel) es la mas dificil tecnicamente y requerira varias iteraciones de validacion. Sigue pendiente tambien: perdida de cambios en archivos del usuario (sesion 6), alcance SIN VISITA/OSA por comercial, tono de textos, y el filtro 'LIBRO' para TNOGAL (sesion 8, aun sin aplicar).",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'diseno_escalamiento_TRAZABILIDAD'. El usuario ira construyendo FASE 0 (y siguientes) por su cuenta en Excel; el rol de Claude es REVISAR/VALIDAR lo que el usuario muestre o pregunte, no escribir directamente salvo pedido explicito. Ir fase por fase, sin adelantarse."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Decima sesion (mismo dia, continuacion, lluvia de ideas -- SIN ejecucion). El usuario actualizo REPORTES y OSA con datos de los dias 17 y 18 de agosto, y construyo POR SU CUENTA 4 columnas nuevas en RUTA_RUTERO (d1+, d2+, VISITA_ACTUAL, RESUELTO_SEM_ACTUAL) que reutilizan el mecanismo de array dinamico SORT/UNIQUE (esta vez ascendente) para detectar si los locales con VISITA_0=1 de la semana cerrada ya tuvieron una visita nueva despues -- una solucion formula-only mas simple que el diseno de TRAZABILIDAD_LOG de la sesion 9. Claude reviso esas formulas (solo lectura, archivo cerrado por el usuario antes de pedir la revision) y las evaluo positivamente, señalando un typo menor ('RESULTO' sin la E) y que el mismo tratamiento falta aplicarse al lado OSA de RUTA_RUTERO (que sigue con el bug de falta de filtro de fecha). El usuario tambien pregunto si convenia unificar la logica de DINAMICA en Power Query, con miedo a sobrecargar el equipo; Claude recomendo seguir con formulas (las tablas grandes ya se consultan asi y aguantan bien; las tablas nuevas que se diseñan son chicas) y reservar Power Query solo para el dia que se quiera una tabla unica historica de verdad, probando primero en copia.",
+      "sin_resolver": "Todo sigue en fase de lluvia de ideas. Pendiente: decidir si aplicar el mismo patron d1+/d2+ al lado OSA de RUTA_RUTERO; corregir el typo RESULTO->RESUELTO; decidir si/cuando construir el TRAZABILIDAD_LOG completo (sigue teniendo valor para historial multi-semana, cosa que d1+/d2+ no cubre); y las decisiones_pendientes previas (LIBRO en TNOGAL, perdida de cambios sesion 6, alcance SIN VISITA/OSA por comercial, tono de textos).",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente el nuevo bloque 'AVANCE_sesion10_usuario_construyo_su_propia_solucion_parcial' y 'decision_formulas_vs_power_query_sesion10' dentro de diseno_escalamiento_TRAZABILIDAD. Seguir en modo de revision/validacion de lo que el usuario vaya construyendo, formula por formula, antes de sugerir nuevas piezas."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Onceava sesion (mismo dia, continuacion, solo diseño -- SIN ejecucion). El usuario pidio unificar los 2 indicadores de DINAMICA (incumplimiento y OSA) para no tener que leerlos por separado. Claude diagnostico que el problema es de GRANO (incumplimiento es Local+Marca, OSA es Local+Marca+SKU) y que la unificacion correcta no es fusionar los 2 pivots en 1 pivot clasico, sino construir 1 tabla PLANA (formato largo) con 1 fila por foco y columna Tipo_Indicador, usando FILTER()+VSTACK() (misma familia de funciones de array dinamico que el archivo ya usa con SORT/UNIQUE) para armarla 100% con formulas, sin Power Query. Se diseño el esquema de columnas y el plan de 5 pasos menor-a-mayor, conectandolo con el diseño previo de TRAZABILIDAD/DETECCION_HOY (sesion 9) y con el patron d1+/d2+/RESUELTO_SEM_ACTUAL que el usuario ya construyo (sesion 10), que se extenderia a esta tabla unificada para cubrir tambien el Estado de OSA.",
+      "sin_resolver": "Nada ejecutado aun. El usuario debe decidir si empieza a construir el Bloque 1 (incumplimiento como lista FILTER) el mismo, o pide que Claude lo arme.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'plan_unificacion_DINAMICA_sesion11'. Preguntar si el usuario ya avanzo construyendo el Bloque 1, y validar/ayudar segun corresponda."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Doceava sesion (mismo dia, continuacion, solo revision + diseño -- SIN ejecucion de Claude). El usuario actualizo el archivo por su cuenta: renombro 'Marca/Campaña'->'CLIENTE' y 'Codigo'->'COD KPI ONE' en OSA (para calzar con RUTA_RUTERO), agrego una columna Gestor en el panel OSA de DINAMICA via XLOOKUP de 2 criterios contra RUTA_RUTERO, y sumo RESUELTO_SEM_ACTUAL='PERSISTE' como filtro activo del pivot de incumplimiento (asi el pivot mismo descarta lo ya resuelto). Declaro el objetivo final: mezclar CUMPLIMIENTO+OSA+MINUTA para producir PLANTILLA con ayuda decreciente de Claude, cada vez mas automatico. Claude reviso (solo lectura) los cambios, los valido positivamente, y extendio el plan de la sesion 11 (FILTER+VSTACK) para incorporar un tercer bloque de MINUTA (pendiente: normalizar Cod Local via formula equivalente a Tabla6) y cerro el pipeline completo hasta PLANTILLA generada por formula (UNIQUE+TEXTJOIN+FILTER), reemplazando el script build_plantilla.py.",
+      "sin_resolver": "Falta construir el Bloque MINUTA en formula (la normalizacion de prefijos via Tabla6, hoy solo existe en Python). Todo el pipeline de VSTACK de 3 bloques y el TEXTJOIN final de PLANTILLA sigue sin construir.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'plan_hacia_automatizacion_completa_sesion12'. Preguntar si el usuario quiere seguir con el Bloque MINUTA (normalizacion Tabla6 en formula) o prefiere revisar mas a fondo lo ya construido antes de sumar la tercera pieza."
+    },
+    {
+      "fecha": "2026-08-18",
+      "resumen": "Treceava sesion (mismo dia, continuacion, solo diseño -- SIN ejecucion). El usuario confirmo que el hallazgo de OSA multi-semana (RECURRENCIA_SEMANA sin filtro de fecha real) queda pendiente a proposito, sin urgencia ('nos importa el ultimo reporte de OSA, no afecta por el momento'). Luego pidio ayuda para unificar CUMPLIMIENTO+OSA+MINUTA en una tabla unica antes de PLANTILLA, y pregunto explicitamente si conviene usar Power Query para las DINAMICAS en vez de formulas, pidiendo la opinion honesta de Claude y el alcance de su participacion. Claude CAMBIO su recomendacion de la sesion 10 (antes: 100% formulas) con base en evidencia nueva: OSA crecio de 51k a 69k filas en un dia y va a seguir creciendo, validando el miedo original del usuario de que formulas en vivo (FILTER/VSTACK) sobre esa tabla se vuelvan pesadas. Se propuso arquitectura hibrida: Power Query para filtrar/reducir las tablas grandes que crecen (OSA principalmente, potencialmente REPORTES a futuro) hacia 3 consultas (PQ_CUMPLIMIENTO, PQ_OSA, PQ_MINUTA) unidas con Append Queries en una TABLA_UNIFICADA chica; formulas (UNIQUE+FILTER+TEXTJOIN) solo para el paso final desde esa tabla ya chica hacia PLANTILLA. Claude ofrecio escribir el codigo M de las 3 consultas para que el usuario las pegue, o construirlas el mismo por COM -- pregunto cual prefiere, sin respuesta aun.",
+      "sin_resolver": "Falta que el usuario elija modalidad (Claude escribe M para pegar, vs Claude ejecuta por COM) para empezar a construir las 3 consultas de Power Query. Todo el diseño de PIVOTE_ARQUITECTONICO_sesion13 sigue sin construir. El hallazgo de RECURRENCIA_SEMANA multi-semana sigue pendiente, sin urgencia.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'PIVOTE_ARQUITECTONICO_sesion13_hacia_PowerQuery_hibrido'. Preguntar al usuario que modalidad de construccion eligio para las 3 consultas de Power Query, y proceder segun corresponda (escribir M para pegar, o ejecutar por COM con backup e instancia aislada)."
+    },
+    {
+      "fecha": "2026-08-18/19",
+      "resumen": "Catorceava y quinceava sesion (pausa activa de por medio, cruzando medianoche). El usuario pidio actualizar PLANTILLA con un nuevo cliente en MINUTA (MAILEMU MIEL, sumado a FROZT/TNOGAL) y pidio textos discretos nuevos para SIN VISITA (-> 'SEGUIMIENTO | Verificar visita y disponibilidad en local.') y OSA (-> accion 'Verificar visita y stock actualizado.'). Claude reescribio el script para detectar columnas de DINAMICA POR NOMBRE (la estructura se habia roto: perdio COD B2B, se corrio una fila) -- funciono, pero el CalculateFullRebuild sobre el archivo pesado (~26MB, OSA 69k+ filas) empezo a CRASHEAR Excel de verdad (159s de recalculo y caida de la conexion COM en pleno guardado), incluso con instancia aislada (DispatchEx). Tras 2 reintentos (el segundo con exito, confirmado post-corte de sesion: 73 filas, MAILEMU MIEL 26/TNOGAL 36/FROZT 11), el usuario creo POR SU CUENTA un archivo liviano nuevo (02_MINUTAS_CLIENTES_PLANTILLA.xlsm, ~110KB, solo snapshots de valores sin formulas de REPORTES/OSA/MINUTA/PLANTILLA) para evitar el problema de raiz. Claude adapto el script a este archivo (build_plantilla_v3.py), corrigiendo de paso un bug real: la exclusion 'LIBRO' para TNOGAL (pendiente desde sesion 8) solo se aplicaba a MINUTA y no a OSA, dejando pasar 3 filas indebidas -- corregido en ambos lados. Ejecucion final en el archivo liviano: rapida, sin crash (no hizo falta recalcular nada, el archivo no tiene formulas), 26 filas para MAILEMU MIEL, verificado sin duplicados/LIBRO/residuos, cruce WALMART EX/HI confirmado correcto.",
+      "sin_resolver": "El archivo PESADO (02_MINUTAS_CLIENTES.xlsm) sigue con la version de PLANTILLA que TIENE el bug de LIBRO sin corregir (73 filas, generada antes del fix). Hay que decidir con el usuario si se sigue trabajando principalmente desde el archivo liviano de ahora en adelante (parece ser la intencion), y si/cuando sincronizar el archivo pesado. Tambien falta saber si el archivo liviano se seguira regenerando 1 cliente a la vez (como en esta corrida, solo MAILEMU MIEL) o se ampliara a todos los clientes activos.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'ARCHIVO_LIVIANO_PLANTILLA_sesion15'. Preguntar como quiere seguir trabajando de ahora en adelante: seguir generando el archivo liviano por cliente, o consolidar todos los clientes ahi. Usar SIEMPRE build_plantilla_v3.py (o su evolucion) como base -- deteccion de columnas por nombre, sin CalculateFullRebuild si el archivo de destino no tiene formulas, DispatchEx, backup previo."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 15 (continuacion breve, solo confirmacion -- SIN ejecucion). El usuario confirmo EXPLICITAMENTE que la arquitectura de dos archivos (motor pesado + resultado liviano) es la forma de trabajo DEFINITIVA de ahora en adelante, no un experimento puntual de la sesion anterior. Claude registro esto en un bloque nuevo y prioritario 'ARQUITECTURA_DE_DOS_ARCHIVOS_VIGENTE_desde_sesion15' al inicio de la memoria, para que cualquier sesion futura lo lea primero.",
+      "sin_resolver": "Falta definir COMO se hace repetible el paso de exportar snapshot del motor hacia el archivo resultado (hoy fue manual, una vez). Sigue pendiente sincronizar el bug de LIBRO en la PLANTILLA del archivo pesado (si es que se le sigue dando uso a esa copia).",
+      "proxima_sesion_deberia": "Retomar leyendo 'ARQUITECTURA_DE_DOS_ARCHIVOS_VIGENTE_desde_sesion15' primero. Ante cualquier pedido de actualizar PLANTILLA, trabajar sobre 02_MINUTAS_CLIENTES_PLANTILLA.xlsm (liviano) salvo que el usuario pida explicitamente tocar el motor pesado."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 16 (continuacion breve, solo declaracion de intencion -- SIN ejecucion). El usuario pidio volver a trabajar en el MOTOR (02_MINUTAS_CLIENTES.xlsm) para dejar cada tabla lo mas limpia posible, de cara a que la futura automatizacion (incluida la capacidad de Claude de determinar como armar cada PLANTILLA) sea mas simple. Claude recopilo un checklist de 5 items de limpieza pendientes ya catalogados en sesiones anteriores (RECURRENCIA_SEMANA sin filtro de fecha y falta de SEMANA_ISO en OSA; typo RESULTO en RUTA_RUTERO; columna OSA de RUTA_RUTERO sin filtro de fecha; Tabla6 movida de posicion en MINUTA) y lo presento para que el usuario priorice. NADA se ejecuto.",
+      "sin_resolver": "Todo el checklist sigue pendiente de ejecucion, a la espera de que el usuario elija por donde empezar (o pida un plan de menor a mayor).",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'objetivo_sesion16_limpieza_del_motor' dentro de ARQUITECTURA_DE_DOS_ARCHIVOS_VIGENTE_desde_sesion15. Preguntar (si no ha respondido aun) por cual item del checklist empezar. Recordar: cualquier escritura sobre el archivo MOTOR (pesado, ~26MB) requiere backup previo, DispatchEx, y evitar CalculateFullRebuild salvo que sea imprescindible -- ya demostro poder crashear (sesiones 6 y 14)."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 17 (continuacion). El usuario formalizo 5 reglas de negocio para la Observacion de PLANTILLA (prioridad SEGUIMIENTO>OSA>MINUTA; supresion de INMOVILIZADO a nivel de SALA completa cuando hay OSA, no solo por producto igual; NEGATIVO nunca se suprime; linea de OSA sin Local ni STOCK, consolidando todos los productos de la sala en una sola linea separados por coma; NEGATIVO/INMOVILIZADO se quedan con el formato detallado de siempre). Claude confirmo 2 detalles ambiguos via preguntas (sacar STOCK de OSA: si; consolidar tambien NEGATIVO/INMOVILIZADO: no, solo OSA cambia) y construyo build_plantilla_v4.py sobre el archivo LIVIANO. Hubo una anomalia real de ejecucion: la primera corrida en background escribio el formato VIEJO pese a que el script en disco ya tenia el codigo nuevo verificado; reintentando en PRIMER PLANO se obtuvo el resultado correcto -- se documento como gotcha para el futuro. Resultado final verificado: 26 filas, 0 duplicados, formato OSA consolidado correcto, supresion de INMOVILIZADO a nivel de sala confirmada con un caso real (CENCOSUD/J613).",
+      "sin_resolver": "Nada bloqueante de esta sesion. Sigue pendiente el checklist de limpieza del motor (sesion 16) y sincronizar el archivo PESADO (que aun tiene el formato viejo de Observacion) si se le sigue dando uso.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'REGLAS_OBSERVACION_PLANTILLA_sesion17_IMPLEMENTADAS'. Usar build_plantilla_v4.py como base para futuras generaciones de PLANTILLA. Si se corre algo en background y el resultado se ve sospechoso, reintentar en primer plano antes de asumir un problema de datos."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 18 (continuacion breve, solo registro -- SIN ejecucion). El usuario señalo una precaucion importante: el cruce OSA<->MINUTA (especialmente para INMOVILIZADO) se hace solo por texto de nombre de producto, sin SKU real, con riesgo de falsos positivos/negativos al hacerlo para cualquier cliente. Pidio dejarlo anotado como observacion permanente, NO corregir ahora, y seguir enfocados en actualizar PLANTILLA cliente por cliente (el checklist de limpieza del motor queda pausado hasta que el usuario lo retome). Claude creo un log corrido 'HALLAZGOS_OBSERVACIONES_PLANTILLA' para ir registrando este tipo de hallazgos sin detener el trabajo cada vez.",
+      "sin_resolver": "Nada bloqueante. A la espera de que el usuario traiga el proximo cliente en MINUTA (archivo liviano) para actualizar PLANTILLA.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'MODO_DE_TRABAJO_VIGENTE_sesion18' y 'HALLAZGOS_OBSERVACIONES_PLANTILLA'. Procesar el siguiente cliente que traiga el usuario con build_plantilla_v4.py, y seguir agregando hallazgos al log corrido si aparecen, sin detener el flujo para corregirlos salvo pedido explicito."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 19. El usuario guardo el archivo liviano con un cliente nuevo en MINUTA: GRANA (20 filas, CENCOSUD+WALMART), sumado a MAILEMU MIEL que ya estaba. Claude corrio build_plantilla_v4.py EN PRIMER PLANO (evitando el gotcha de background de la sesion 17) con backup previo. Resultado: 51 filas totales (GRANA 25, MAILEMU MIEL 26), 0 duplicados, 0 residuos '.0', 0 STOCK colado en lineas OSA. Verificado con ejemplos reales que la supresion de INMOVILIZADO a nivel de sala funciona correctamente para GRANA tambien (salas con OSA no muestran INMOVILIZADO aunque MINUTA lo tuviera para otro producto; salas sin OSA si muestran INMOVILIZADO normalmente).",
+      "sin_resolver": "La regla especial de GRANA del JSON externo (stock en blanco = 0) no se puso a prueba porque no aparecieron valores en blanco en esta corrida -- vigilar en proximas actualizaciones de GRANA. Resto de pendientes sin cambios (checklist del motor, sincronizar archivo pesado).",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. Seguir procesando clientes nuevos que el usuario traiga en MINUTA con build_plantilla_v4.py EN PRIMER PLANO. Si aparece GRANA con stock en blanco, verificar que se trate como 0 correctamente."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 20 (continuacion breve). El usuario pidio dejar el texto de SEGUIMIENTO mas general, quitando la palabra 'visita': de 'Verificar visita y disponibilidad en local.' a 'Verificar disponibilidad en local.' -- para que aplique bien de forma generica cuando no hay visita. Claude actualizo ACCIONES['SEGUIMIENTO'] en build_plantilla_v4.py y regenero PLANTILLA en el archivo liviano (backup previo, ejecucion en primer plano): 51 filas, mismo conteo que antes (GRANA 25, MAILEMU MIEL 26), solo cambio el texto.",
+      "sin_resolver": "Nada nuevo. Pendientes de siempre: checklist del motor, sincronizar archivo pesado, vigilar regla de stock en blanco para GRANA.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. El texto VIGENTE de SEGUIMIENTO es 'Verificar disponibilidad en local.' -- usar ese en cualquier construccion futura del pipeline (build_plantilla_v4.py ya lo tiene aplicado)."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 21. El usuario trajo un cliente nuevo con reglas MUY distintas: CORRALES DEL SUR (55 salas WALMART, pero 405 combinaciones en MINUTA y 217 en OSA -- muchisimos productos por sala). Pidio: excluir REPORTES/incumplimiento por completo para este cliente, y tratar OSA+NEGATIVO+INMOVILIZADO como una sola condicion con UN mensaje generico por sala (sin detalle de producto), para que el supervisor haga un barrido general en vez de perseguir SKU. Claude confirmo texto exacto y el caso borde (salas sin ningun indicador se dejan fuera, igual que siempre) via preguntas, luego creo build_plantilla_v5.py con reglas especiales por cliente (CLIENTES_SIN_REPORTES, CLIENTES_MENSAJE_GENERAL, hoy solo CORRALES DEL SUR) sin alterar el pipeline generico de los demas clientes. Ejecutado en primer plano con backup previo: 106 filas totales (GRANA 25, MAILEMU MIEL 26, CORRALES DEL SUR 55 -- coincide exacto con el numero de salas unicas), verificado sin SEGUIMIENTO para CORRALES DEL SUR, 55/55 con el texto 'REVISION GENERAL' correcto, 0 duplicados, otros clientes sin cambios.",
+      "sin_resolver": "Nada bloqueante. El mecanismo de reglas especiales por cliente (CLIENTES_SIN_REPORTES/CLIENTES_MENSAJE_GENERAL) queda listo para reutilizarse si otro cliente futuro necesita un tratamiento similar.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'REGLA_ESPECIAL_CORRALES_DEL_SUR_sesion21'. Usar build_plantilla_v5.py (o su evolucion) como base -- ya incluye el pipeline generico (v4) MAS las excepciones por cliente. Si aparece un cliente nuevo con necesidades especiales, considerar sumarlo a los sets existentes en vez de reescribir logica."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 22. Cliente nuevo: BESHOS (104 filas, pipeline generico normal, CENCOSUD+WALMART). El usuario pidio ademas una funcionalidad nueva grande: columna 'Riesgo' (0 a 1) en PLANTILLA para priorizar salas segun cuantos indicadores/combinaciones coinciden. Claude propuso una primera formula (excluyendo INMOVILIZADO del calculo, interpretando mal la frase 'inmovilizado siempre es 0' como que no debia pesar). El usuario corrigio: esa frase se referia a la DEFINICION del indicador (ventas=0 en 2 semanas), no a su peso -- pidio incluir los 4 indicadores, dando MAS peso cuando INMOVILIZADO coincide con OSA/NEGATIVO. Claude regenero la formula (0.5*tipos/4 + 0.5*min(focos,6)/6, contando datos reales aunque OSA los oculte del texto visible), la valido con numeros reales de BESHOS, y la implemento en build_plantilla_v6.py agregando la columna M='Riesgo'. Ejecutado en primer plano con backup previo: 210 filas totales (BESHOS 104, GRANA 25, MAILEMU MIEL 26, CORRALES DEL SUR 55), Riesgo entre 0.21 y 0.88, 0 duplicados, 0 errores. Confirmado que Riesgo diferencia correctamente incluso para CORRALES DEL SUR (texto generico pero Riesgo variable segun combinaciones reales).",
+      "sin_resolver": "Nada bloqueante. El usuario podria querer en el futuro usar Riesgo para ordenar/filtrar PLANTILLA (hoy solo se calcula y se escribe, no se ordena la tabla por el).",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'COLUMNA_RIESGO_sesion22'. Usar build_plantilla_v6.py como base para todo trabajo futuro (incluye pipeline generico + excepciones por cliente + columna Riesgo). Si el usuario pide ajustar los pesos/formula de Riesgo, la funcion calcular_riesgo() esta aislada y es facil de modificar."
+    },
+    {
+      "fecha": "2026-08-19",
+      "resumen": "Sesion 23 (continuacion, solo diseño -- SIN ejecucion). El usuario planteo una duda de fondo sobre el modelo de Riesgo: la magnitud del STOCK importa, no solo la presencia de indicadores -- ejemplo real: OSA+INMOVILIZADO con stock muy bajo (4 unidades) probablemente es un desajuste de inventario fisico-vs-B2B, no un foco real; con stock alto si es capital muerto real. Ademas la interpretacion depende del nivel de venta normal de cada sala. Claude identifico que MINUTA no trae el dato de venta (solo stock actual + banderas), pregunto si existe esa fuente, y el usuario confirmo que SI existe en el informe comercial origen. Se diseño (sin ejecutar) como incorporarlo: cobertura=STOCK/VENTA para SKUs con venta, y stock directo (alto=grave, bajo=probable ruido) para SKUs en INMOVILIZADO. Falta que el usuario traiga el campo de venta a MINUTA con nombre/formato confirmado para calibrar con datos reales, igual que se hizo con la formula de Riesgo original.",
+      "sin_resolver": "Nombre/formato exacto del campo de venta a traer a MINUTA, y si aplica a todos los clientes o solo algunos. Todo el diseño de la mejora queda pendiente de esos datos.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'MEJORA_PENDIENTE_RIESGO_NIVEL_DE_STOCK_sesion23'. Cuando el usuario traiga el campo de venta a MINUTA, calibrar la formula extendida con datos reales (mismo proceso que se uso para validar Riesgo en sesion 22) antes de implementarla en build_plantilla."
+    },
+    {
+      "fecha": "2026-08-20",
+      "resumen": "Sesion 24. El usuario actualizo ambos archivos (MOTOR con corte de control a las 17:00 del dia 18 y dia 19 cerrado; LIVIANO con esos periodos, cliente nuevo BIGU, y 2 columnas nuevas en MINUTA: VTA_S-1/VTA_S-2 de venta), y delego a Claude implementar la mejora de Riesgo diseñada en sesion 23. Al revisar datos reales de BIGU, Claude confirmo que INMOVILIZADO siempre tiene venta=0 (tautologico), por lo que el dato de venta no calibra ese caso -- en cambio el STOCK si, y el mismo criterio se extendio a OSA usando su STOCK_B2B (antes descartado al consolidar la linea). Se reescribio el script desde cero como build_plantilla_v7.py (el scratchpad se habia limpiado entre sesiones, se perdieron las versiones anteriores) con una funcion peso_stock() continua (0 a 1, umbral=15 unidades) que pondera la severidad de OSA e INMOVILIZADO por magnitud real de stock, dejando NEGATIVO sin ponderar (ya es anomalia real en si misma). Ejecutado en primer plano con backup previo: 226 filas (BESHOS 103, GRANA 25, MAILEMU MIEL 26, BIGU 17, CORRALES DEL SUR 55), Riesgo entre 0.10 y 0.88, 0 duplicados, 0 errores. Caso de prueba clave: BIGU WALMART/993 (INMOVILIZADO stock=7) obtuvo el riesgo MAS BAJO de todo el cliente (0.10), confirmando que la ponderacion funciona como el usuario esperaba. Ademas, se guardo una copia PERSISTENTE del script en memoria_claude/scripts/build_plantilla_v7.py para que sobreviva futuras limpiezas de scratchpad.",
+      "sin_resolver": "VTA_S-1/VTA_S-2 sigue disponible para uso futuro (cobertura de stock para SKUs con venta activa, o revivir QUIEBRES) pero no se uso en esta iteracion. Nada bloqueante.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON. IMPORTANTE: usar como punto de partida C:\\Users\\basti\\Desktop\\RT\\memoria_claude\\scripts\\build_plantilla_v7.py (persistente, no depende del scratchpad). Si se genera una version nueva del script, copiarla tambien a esa carpeta."
+    },
+    {
+      "fecha": "2026-08-20",
+      "resumen": "Sesion 25 (continuacion). El usuario comparto material de capacitacion de marca de BIGU (agrupacion de variedades en pareja, logica de disposicion fruta/vegetal, opciones de layout segun espacio) y pidio guardarlo como especificacion del cliente. Ademas reporto resistencia real del equipo de supervisores con el texto de INMOVILIZADO ('buscar mas caras' suena a pedir mas venta cuando el problema es de exhibicion, no de esfuerzo comercial) y pidio cambiarlo a algo enfocado en layout/exhibicion, con la idea de habilitar mensajes personalizados por cliente a futuro. Claude actualizo build_plantilla_v8.py: nuevo texto default de INMOVILIZADO ('Ajustar layout de sala y buscar oportunidades de mejora en exhibición.') aplicado a todos los clientes, mas infraestructura ACCIONES_POR_CLIENTE/get_accion() para personalizar por cliente sin tocar el default compartido. Ejecutado en primer plano con backup previo: 226 filas (sin cambio de conteo), 0 duplicados, 0 con texto viejo, 65 con texto nuevo. El script v8 se persistio en memoria_claude/scripts/.",
+      "sin_resolver": "Las especificaciones de BIGU quedaron guardadas como contexto pero NO se uso todavia para personalizar su mensaje especificamente (ACCIONES_POR_CLIENTE sigue vacio) -- pendiente de que el usuario pida esa personalizacion puntual si la quiere.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'TEXTO_INMOVILIZADO_RENOVADO_sesion25' y 'ESPECIFICACIONES_CLIENTE_BIGU_sesion25'. Usar build_plantilla_v8.py (persistente en memoria_claude/scripts/) como base. Si el usuario pide un mensaje especifico para BIGU u otro cliente, usar ACCIONES_POR_CLIENTE."
+    },
+    {
+      "fecha": "2026-08-20",
+      "resumen": "Sesion 26. Cliente nuevo: BERRYSUR, cuenta de producto de baja rotacion (95% de MINUTA es INMOVILIZADO). El usuario pidio dar mas peso operativo a OSA (el foco real) y menos a INMOVILIZADO (casi siempre presente, poco informativo aqui), ademas de consolidar los SKU+Producto de INMOVILIZADO en una sola linea (como ya se hacia con OSA) para no saturar la observacion. Claude implemento build_plantilla_v9.py: (1) consolidacion de INMOVILIZADO aplicada de forma GENERAL a todos los clientes (mismo criterio de OSA, no solo BERRYSUR); (2) mecanismo nuevo PESOS_POR_CLIENTE que permite escalar la influencia de cada tipo de indicador en Riesgo por cliente, con BERRYSUR configurado OSA=1.5/INMOVILIZADO=0.5. Ejecutado en primer plano con backup previo: 271 filas totales (BERRYSUR 45, mas los 5 clientes previos sin cambio de conteo salvo el formato), 0 duplicados. Verificado con datos reales que las salas OSA de BERRYSUR quedaron claramente arriba en el ranking de Riesgo (0.75 a 0.47) y las de solo INMOVILIZADO mucho mas abajo (0.06 a 0.31). Se detecto 1 hallazgo menor: codigo 'AR10' (local STOP LOS TRAPENSES) sin prefijo definido en Tabla6, genero la fila bien pero con Cadena en blanco -- pendiente de confirmar con el usuario a que cadena corresponde 'AR'. Script v9 persistido en memoria_claude/scripts/.",
+      "sin_resolver": "Confirmar con el usuario el significado del prefijo 'AR' (BERRYSUR, local STOP LOS TRAPENSES) para sumarlo a Tabla6 si corresponde.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'BERRYSUR_sesion26'. Usar build_plantilla_v9.py (persistente) como base. Preguntar al usuario sobre el prefijo AR10 si aun no se resolvio."
+    },
+    {
+      "fecha": "2026-08-21",
+      "resumen": "Sesion 27. Cliente nuevo ALUSWEET, con una capa nueva de gestion: el usuario agrego hoja VENTAS (comparativo YoY por SKU/local) y pidio que Claude analice como analista de negocio (problematicas, ideas de indicadores, observaciones para reuniones comerciales), no solo ejecutar el pipeline mecanico. Antes de implementar, Claude reviso los datos reales, detecto que el comparativo YoY crudo daba caidas falsas y alarmantes (-50% en WALMART, TODAS las salas cayendo) por comparar periodos de distinto largo (2025=4 semanas, 2026=2 semanas), PREGUNTO explicitamente antes de presentar el analisis, y con la correccion (venta promedio semanal) el panorama resulto ser mucho mas sano (WALMART -1.3% estable, TOTTUS -15.9% real, CENCOSUD y SMU en mejora). Con confirmacion del usuario ('dejalo como base inicial'), Claude implemento: (1) build_plantilla_v10.py con un mecanismo nuevo de peso por CADENA (ALUSWEET: WALMART x1.3, foco operativo pedido explicitamente) y de paso corrigio un bug real de casing en MINUTA.RETAIL que solo afectaba a ALUSWEET; (2) hoja nueva OBSERVACIONES (tabla generica y reutilizable para cualquier cliente futuro, Cliente/Fecha/Categoria/Observacion/Prioridad) poblada con 25 hallazgos de ALUSWEET via build_observaciones.py, que reemplaza solo las filas del cliente procesado sin tocar las de otros. Se registro tambien la vision de largo plazo del usuario (mas variables, modelo de maximizacion de beneficio, mensajes cada vez mas generales en PLANTILLA). Todo ejecutado en primer plano con backups previos, verificado sin errores.",
+      "sin_resolver": "SEMANAS_2026_CERRADAS=2 en build_observaciones.py debe actualizarse manualmente cada semana que cierre una nueva -- riesgo de que alguien lo olvide y los porcentajes queden mal. QUIEBRES de ALUSWEET confirmados como fuera de alcance de MINUTA (van en un archivo de sugerido aparte que el usuario envia directo al cliente) -- ya coincide con la regla general existente, sin accion necesaria.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'PROYECTO_ALUSWEET_sesion27'. Usar build_plantilla_v10.py + build_observaciones.py (ambos persistentes en memoria_claude/scripts/) como base. Si se vuelve a correr el analisis de ALUSWEET (u otro cliente), ACORDARSE de actualizar el conteo de semanas cerradas de 2026 antes de ejecutar."
+    },
+    {
+      "fecha": "2026-08-21",
+      "resumen": "Sesion 28 (continuacion). El usuario reporto un 'pequeño gran detalle': codigos WALMART con prefijo EX/HI 'sin sufijo aplicado' en ALUSWEET. Claude investigo con datos reales (no asumio nada) y confirmo 2 problemas encadenados, ambos exclusivos de ALUSWEET: (1) MINUTA.COD_LOCAL de ALUSWEET SI trae el prefijo de cadena (a diferencia de todos los clientes previos que ya llegaban limpios), y el pipeline nunca le aplicaba el 'quitar SUFIJO' de Tabla6 a MINUTA, partiendo cada sala WALMART/TOTTUS/SMU en 2 filas de PLANTILLA en vez de 1. Al corregir esto, aparecio un (2) bug real de Claude en la funcion normalizar(): convertia el codigo a texto ANTES de limpiar el tipo, asi que un codigo numerico limpio llegado como float (ej. 84.0 desde Excel/COM) se volvia texto '84.0' en vez de '84', duplicando temporalmente 57 filas (afectando tambien a BESHOS/GRANA de forma transitoria). Corregido reordenando la funcion (norm_code() primero, logica de prefijo despues). Resultado final verificado: 340 filas, 0 duplicados, ALUSWEET bajo de 84 a 69 filas (las salas que estaban partidas ahora se fusionaron correctamente), los demas clientes volvieron a sus conteos historicos correctos.",
+      "sin_resolver": "Nada bloqueante. La hoja OBSERVACIONES (analisis de VENTAS) no se vio afectada por este bug (lee VENTAS directamente, cuyo COD KPI One siempre es texto con prefijo, nunca float puro) asi que no requirio regenerarse.",
+      "proxima_sesion_deberia": "Retomar leyendo este JSON, especialmente 'BUG_NORMALIZACION_CODIGO_LOCAL_sesion28'. Usar build_plantilla_v11.py (persistente) como base -- tiene el fix de normalizar() aplicado. Si aparece un cliente nuevo, no asumir que MINUTA.COD_LOCAL viene siempre limpio -- ya se demostro que puede variar por cliente."
+    },
+    {
+      "fecha": "2026-08-26",
+      "resumen": "Sesion 29. El usuario reporto que el equipo de informatica cambio los campos de descarga de OSA en 02_MINUTAS_CLIENTES.xlsm, rompiendo formulas (ALERTA_CRITICA con error de referencia por la columna STOCK_B2B borrada o renombrada, y las formulas de hora rotas). Diagnostico de Claude, solo lectura, sin escribir en el archivo: Fecha paso de ser un datetime real a un texto combinado fecha mas hora (por ejemplo 20-08-2026, 10:40:06 p. m.), y Hora quedo cien por ciento vacia. Esto rompia FECHA_HORA, ULTIMA_FECHA_HORA_SEMANA y ES_ULTIMO_REGISTRO con error de valor en las 73787 filas. Se diseno una nueva cadena de columnas auxiliares (FECHA_TEXTO, HORA_TEXTO, FECHA_REAL, HORA_ES_PM, HORA_HH, HORA_MM, HORA_SS, HORA_24, FECHA_HORA) para reconstruir la fecha hora real parseando el texto. El usuario aplico las formulas el mismo, manualmente, en varias iteraciones, y Claude fue corrigiendo el formato de entrega en cada vuelta: de coma a punto y coma, de ingles a espanol, de SIERROR a SI.ERROR, de corchete simple a corchete doble, y finalmente reemplazo VALHORA por extraccion manual de HH, MM y SS porque VALHORA no aparecia en el autocompletado del usuario. Tambien se detecto y corrigio un problema de formula matricial accidental en HORA_24 (confirmada con Ctrl+Shift+Enter en vez de Enter) que dejaba el valor pegado en cero sin mostrar error. Verificacion final sobre el archivo completo: 73787 filas, cero errores, HORA_24 y FECHA_HORA calculando la hora real correctamente, ALERTA_CRITICA en 1 para 2061 filas. Unico pendiente: la tabla dinamica de OSA en DINAMICA aun muestra error de no disponible, requiere que el usuario la actualice manualmente con Datos, Actualizar todo; es esperado y no requiere accion de Claude. Se documento la leccion completa en LECCION_FORMATO_ENTREGA_DE_FORMULAS_sesion29 para no repetir los mismos errores de formato en futuras entregas de formulas.",
+      "sin_resolver": "DINAMICA (panel OSA) pendiente de refresh manual por el usuario, deberia autoresolverse una vez actualizada, sin necesitar mas cambios de formula. RECURRENCIA_SEMANA sigue sin acotarse por semana (limitacion conocida desde sesion 13 y 23, deferred). El usuario continua el desarrollo del Excel por su cuenta y avisara como avanza, no hay tarea abierta de Claude en este momento, queda a la espera de que el usuario retome contacto.",
+      "proxima_sesion_deberia": "Leer este JSON, en especial LECCION_FORMATO_ENTREGA_DE_FORMULAS_sesion29, antes de entregar cualquier formula nueva a este usuario (aplicar el protocolo: punto y coma como separador, funciones en espanol verificadas una por una, corchete doble para referencias de tabla en la fila actual, coma decimal, preferir columnas auxiliares simples sobre formulas gigantes anidadas). Si el usuario reporta que aplico cambios en el Excel, validar leyendo el archivo completo, no solo una muestra, con openpyxl en data_only verdadero y data_only falso, buscando tanto errores explicitos como resultados sospechosamente uniformes que puedan indicar un SI.ERROR enmascarando un error real o una formula matricial mal confirmada."
+    }
+  ],
+  "LECCION_FORMATO_ENTREGA_DE_FORMULAS_sesion29": {
+    "contexto": "El equipo de informatica cambio los campos de descarga de OSA en 02_MINUTAS_CLIENTES.xlsm (fecha+hora unidos en un solo texto, Hora vacia, Stock B2B congelado renombrado). Claude diagnostico y el usuario aplico las correcciones manualmente el mismo, siguiendo el flujo: Claude entrega formula por pantalla, el usuario la tipea o pega, guarda, y Claude valida leyendo el archivo con openpyxl (formulas y valores cacheados, nunca escribe en el archivo).",
+    "errores_de_formato_cometidos_por_Claude_y_correccion": [
+      "1) Separador de argumentos: el Excel del usuario usa PUNTO Y COMA para separar argumentos, no coma. Coma es el separador que usa el XML interno OOXML pero no lo que el usuario puede tipear en su Excel en espanol.",
+      "2) Nombres de funcion: hay que usar los nombres en ESPANOL (SI, Y, O, NO, SI.ERROR, ESNUMERO, IZQUIERDA, DERECHA, EXTRAE, HALLAR, VALOR, FECHA, SUMA, MAX.SI.CONJUNTO, CONTAR.SI.CONJUNTO), nunca en ingles (IF, AND, IFERROR, LEFT, MID, SEARCH), aunque el separador ya sea punto y coma.",
+      "3) Ojo con IFERROR: en espanol no es SIERROR (una palabra), es SI.ERROR (con punto). Escribir SIERROR produce un error de nombre silencioso o mal autocompletado. Verificar siempre la traduccion exacta de cada funcion antes de entregarla, no asumir que basta con pegar palabras.",
+      "4) Referencias estructuradas de Tabla en la fila actual: el usuario necesita el corchete doble tipo arroba-corchete-corchete-columna-corchete-corchete, no el corchete simple. Sin el doble corchete Excel puede rechazar o mal interpretar la referencia.",
+      "5) Separador decimal: los literales numericos deben ir con coma decimal (cero coma cinco) no con punto, consistente con el separador de argumentos punto y coma.",
+      "6) Evitar VALHORA (TIMEVALUE) si no se puede confirmar que existe con ese nombre exacto en el Excel del usuario. En un caso el autocompletado de Excel no la sugirio (posible variante regional o de build). Alternativa mas robusta y ya validada: extraer HH, MM y SS como texto con IZQUIERDA, EXTRAE y HALLAR, convertir con VALOR, y construir la fraccion de dia manualmente con (HH por 3600 mas MM por 60 mas SS) dividido 86400, en vez de depender de una funcion de conversion de hora que pueda no existir o comportarse distinto.",
+      "7) Formula matricial (CSE) por accidente: si el usuario confirma una formula con Ctrl+Shift+Enter en vez de solo Enter, en una columna calculada de Tabla la formula puede quedar pegada devolviendo el mismo valor (por ejemplo cero) en todas las filas sin mostrar ningun error visible. Sintoma: la formula se ve bien escrita, sin errores de referencia o de valor, pero el resultado es identico y estatico en todas las filas. Diagnostico: leer la formula via openpyxl; si openpyxl la devuelve como objeto ArrayFormula en vez de string plano, confirma el problema. Solucion: borrar la celda y re escribir confirmando solo con Enter.",
+      "8) SI.ERROR puede enmascarar errores reales devolviendo el valor de respaldo (por ejemplo cero) sin ningun indicador visual de error. Un dato mal parseado dentro de una formula envuelta en SI.ERROR se ve identico a un dato genuinamente cero. Cuando algo da cero de forma sospechosamente uniforme en todas las filas, revisar la formula interna antes de asumir que el dato fuente es realmente cero.",
+      "9) Cuando Claude no esta segura de la sintaxis exacta que soporta el Excel del usuario, la forma mas rapida de diagnosticar sin escribir nada es pedirle que use Formulas, Auditoria de formulas, Evaluar formula, paso a paso, y que reporte en que paso se rompe. Es mas rapido que iterar formulas a ciegas por chat."
+    ],
+    "protocolo_recomendado_para_futuras_entregas_de_formulas": "1) El locale de este usuario ya quedo confirmado: separador punto y coma, funciones en espanol, coma decimal, corchete doble para referencias de tabla en la fila actual. Reusar siempre esta configuracion sin volver a preguntar. 2) Verificar nombre por nombre la traduccion exacta de cada funcion antes de entregarla, en especial las que llevan punto como SI.ERROR. 3) Preferir logica descompuesta en varias columnas auxiliares simples, mas facil de tipear sin error y de depurar con Evaluar formula, en vez de una formula gigante anidada, aunque sea menos compacta, ya que el usuario tipea manualmente y cada nivel de anidamiento extra es una oportunidad de error. 4) Validar despues de cada guardado leyendo con openpyxl tanto la formula (data_only en falso) como el valor cacheado (data_only en verdadero) sobre el archivo completo, no solo una muestra de filas, para detectar errores silenciosos tipo SI.ERROR o formulas matriciales mal confirmadas.",
+    "limitacion_de_herramientas_de_Claude": "Claude solo puede leer el archivo (formulas y ultimo valor calculado y guardado por Excel) via openpyxl. No puede ejecutar el motor de calculo de Excel ni refrescar tablas dinamicas por si sola en este flujo de solo lectura. Ya existe capacidad de automatizacion via Excel COM (pywin32, patron DispatchEx ya usado en otros scripts del proyecto) que si podria abrir una instancia independiente, forzar recalculo y refrescar dinamicas en modo solo lectura. Fue ofrecida al usuario y queda pendiente de confirmacion explicita antes de usarla, requiere ademas que el usuario cierre el archivo primero para evitar conflictos de bloqueo."
+  }
+}

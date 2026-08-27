@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "document_type": "kernel",
+  "project": "RT_trazabilidad_retail",
+  "version": 1,
+  "generated_at": "2026-08-26",
+  "authority": "Este documento es la fuente de verdad ESTRUCTURAL del proyecto: arquitectura, reglas de negocio vigentes, reglas operativas de Claude, y protocolos. Cambia poco. Si algo aqui contradice a 02_state.json, gana 02_state.json (es el snapshot mas reciente). Si algo aqui contradice a la narrativa libre de 04_bitacora_sesiones.json, gana este documento -- la bitacora es historia, no autoridad.",
+  "proposito_del_proyecto": "Trazabilidad y automatizacion progresiva de un sistema semanal de reportes/indicadores de gestion retail (visitas, exhibicion OSA, stock negativo, inmovilizado) para uso interno y para comunicacion con clientes (supervisores/gestores de sala).",
+
+  "arquitectura_de_dos_archivos": {
+    "vigente_desde": "sesion 15",
+    "motor": {
+      "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_MINUTAS_CLIENTES.xlsm",
+      "rol": "Archivo pesado (~25-29MB). Aqui viven TODAS las formulas y tablas Excel origen: REPORTES (Tabla1), DINAMICA, RUTA_RUTERO (Tabla4), OSA (Tabla3), MAESTRA, MINUTA (Tabla6 vive aqui). Alto riesgo de crash de Excel/COM en recalculo completo -- evitar CalculateFullRebuild salvo estrictamente necesario.",
+      "modo_de_edicion": "El usuario edita este archivo directamente en Excel. Claude NO escribe en el sin autorizacion explicita y acotada a la tarea del momento. Cuando hay que corregir formulas rotas, el flujo es: Claude entrega la formula por pantalla -> usuario la tipea/pega -> guarda -> Claude valida leyendo el archivo (nunca escribe)."
+    },
+    "resultado_liviano": {
+      "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_MINUTAS_CLIENTES_PLANTILLA.xlsm",
+      "rol": "Archivo liviano (~110-220KB), creado por el usuario en sesion 15. Contiene SOLO VALORES (snapshot estatico, sin formulas) de REPORTES/OSA/MINUTA, mas las hojas generadas PLANTILLA, VENTAS y OBSERVACIONES. Es el 'resultado del trabajo', seguro y rapido de automatizar por COM porque no tiene formulas que recalcular.",
+      "modo_de_edicion": "Aqui SI automatiza Claude via scripts persistentes (ver scripts_vigentes en 02_state.json), siempre con backup previo y patron seguro de COM."
+    }
+  },
+
+  "tablas_excel_clave": {
+    "Tabla1": "REPORTES -- grano: 1 fila = 1 foto dentro de una visita. Columnas incluyen ID, Codigo Local, Marca, Fecha, Hora, Hora de subida, VISITA (=1/COUNTIFS para neutralizar doble conteo del mismo dia).",
+    "Tabla3": "OSA -- grano: 1 registro de exhibicion por SKU/Producto/Local/momento. Columnas clave 2026: Encuesta, Producto, SKU, CLIENTE, Reponedor, Local, COD KPI ONE, Respuesta, STOCK_B2B, Fecha stock B2B, Discrepancia, Notas, Fecha (ver formato_fecha_OSA_2026 abajo), mas columnas calculadas: FECHA_TEXTO, HORA_TEXTO, FECHA_REAL, OSA, OSA_FOCO, HORA_ES_PM, HORA_HH, HORA_MM, HORA_SS, HORA_24, FECHA_HORA, ULTIMA_FECHA_HORA_SEMANA, ES_ULTIMO_REGISTRO, RECURRENCIA_SEMANA, ALERTA_CRITICA.",
+    "Tabla4": "RUTA_RUTERO -- grano: 1 fila = 1 combinacion local/ruta. Contiene el sistema de 'semana cerrada' via SORT(UNIQUE(Tabla1[Fecha])) y columnas d1+/d2+/d2+3/d2+4 para rastrear visitas que llegan despues del cierre de semana. Typo conocido no corregido: 'RESULTO' deberia ser 'RESUELTO' (fuera de alcance, no tocar sin pedido explicito).",
+    "Tabla6": "Vive en la hoja MINUTA. Columnas CADENA | SUFIJO | SUFIJO2 | OBSERVACION. Define, por cadena, si el codigo de local debe 'conservar' el prefijo o si hay que 'dejar numerico' quitando el prefijo (ej. WALMART: EX/HI -> dejar numerico; CENCOSUD: J/N -> conservar; TOTTUS: TT -> dejar numerico; SMU: AL/UN -> dejar numerico). Es el mecanismo central de normalizacion de claves entre OSA/REPORTES/VENTAS (siempre prefijados) y MINUTA (a veces prefijado, a veces no -- VARIA POR CLIENTE, ver regla_normalizacion_codigo_local)."
+  },
+
+  "formato_fecha_OSA_2026": {
+    "cambio": "Desde ~agosto 2026 el equipo de informatica cambio el campo 'Fecha' de OSA: paso de ser un datetime real a un TEXTO combinado fecha+hora, formato 'DD-MM-AAAA, HH:MM:SS a/p. m.' (ej. '20-08-2026, 10:40:06 p. m.'). El campo 'Hora' quedo 100% vacio. El campo de stock crudo se renombro de 'STOCK_B2B' a 'Stock B2B congelado' y luego el usuario lo volvio a renombrar a 'STOCK_B2B' manualmente para no romper referencias.",
+    "solucion_vigente": "Cadena de columnas auxiliares en Tabla3 que parsean el texto: FECHA_TEXTO (parte antes de la coma) -> FECHA_REAL (fecha real reconstruida); HORA_TEXTO (parte despues de la coma) -> HORA_ES_PM / HORA_HH / HORA_MM / HORA_SS (extraidos con IZQUIERDA/EXTRAE/HALLAR, NO con VALHORA -- ver leccion_entrega_de_formulas) -> HORA_24 (fraccion de dia = (HH*3600+MM*60+SS)/86400 + ajuste AM/PM) -> FECHA_HORA = FECHA_REAL + HORA_24. Validado sobre las 73.787 filas de OSA: 0 errores, 26-ago-2026."
+  },
+
+  "regla_quiebres_excluidos_de_plantilla": {
+    "vigente_desde": "sesion 30 (2026-08-27)",
+    "regla": "El indicador de QUIEBRES (columna MINUTA.QUIEBRES) NUNCA debe aparecer en PLANTILLA, para ningun cliente ni foco -- ese dato ya se le presenta al cliente por otra via. Es una regla global, no un override por cliente. El pipeline de PLANTILLA no debe leer ni exponer esa columna en ningun mensaje/observacion."
+  },
+
+  "regla_llave_unica_COD_KPI_ONE_mas_CLIENTE": {
+    "vigente_desde": "sesion 30 (2026-08-27)",
+    "regla": "REPORTES, OSA y MINUTA se cruzan SIEMPRE por 'COD KPI ONE' + 'CLIENTE'. MINUTA ahora trae su propia columna 'COD KPI ONE' (mismo formato con prefijo de cadena que REPORTES/OSA) -- ya NO hace falta derivar la cadena de MINUTA via RETAIL+COD_LOCAL, se usa el mismo camino (inferir_cadena + normalizar via Tabla6) que las otras 2 hojas. Para el codigo MOSTRADO en PLANTILLA ('Cod Local'), siempre pasar COD KPI ONE por la tabla de SUFIJO (Tabla6) antes de escribirlo.",
+    "implementacion_vigente": "build_plantilla_v13.py (reemplaza v11/v12)."
+  },
+
+  "regla_actualizacion_incremental_de_PLANTILLA": {
+    "vigente_desde": "sesion 30 (2026-08-27), v13",
+    "regla": "PLANTILLA se actualiza de forma INCREMENTAL, no con clear-total: en cada corrida se preservan intactas las filas de cualquier cliente que no este en `clientes_foco` (los clientes presentes en la MINUTA de esa corrida especifica), y solo se reemplazan las filas de los clientes que si estan. Esto permite ir cargando clientes de a uno (o los que el usuario indique en cada mensaje) sin perder el trabajo ya hecho de los demas -- incluida cualquier edicion manual en Estatus/Respuesta Supervisor/Fecha Respuesta de filas de clientes no tocados.",
+    "fuente_de_autocompletado_Local_Gestor_Supervisor": "RUTA_RUTERO/Tabla7, cruzando por (CLIENTE, cadena, cod_local_norm). Respaldo: texto de Local/Gestor visto en la propia fila de REPORTES u OSA para esa sala. Si ninguna fuente tiene el dato, se deja en blanco -- nunca se inventa.",
+    "implementacion_vigente": "build_plantilla_v14.py (reemplaza v13)."
+  },
+
+  "regla_clientes_sin_MINUTA_o_solo_OSA_REPORTES": {
+    "vigente_desde": "sesion 32 (2026-08-27), v14",
+    "hallazgo": "`clientes_foco` se calculaba SOLO desde los clientes presentes en MINUTA -- un cliente con datos en REPORTES y/o OSA pero SIN ninguna fila en MINUTA (ej. MORETTA) quedaba excluido de PLANTILLA en silencio. IMPORTANTE: la union automatica con TODO el universo de REPORTES/OSA (que contienen TODOS los clientes historicos, no solo los de la semana activa) NO es la solucion -- se probo y trajo 44 clientes/1113 filas de golpe, muchas nunca gestionadas por este pipeline.",
+    "regla": "`clientes_foco` = clientes en MINUTA + un set explicito `CLIENTES_EXTRA_SIN_MINUTA` que el usuario nombra cliente por cliente cuando corresponde (nunca se infiere solo desde el universo completo de REPORTES/OSA). Ademas existe `CLIENTES_SOLO_OSA_REPORTES`: para esos clientes se ignora cualquier fila de MINUTA (INMOVILIZADO/NEGATIVO nunca aparecen en su mensaje), sea porque hoy no tienen esos datos o porque el cliente se gestiona asi por diseno.",
+    "implementacion_vigente": "build_plantilla_v14.py."
+  },
+
+  "regla_normalizacion_codigo_local": {
+    "principio": "OSA, REPORTES y VENTAS usan 'COD KPI ONE' (siempre con prefijo de cadena si aplica). MINUTA usa 'COD_LOCAL' -- y AQUI ES DONDE VARIA POR CLIENTE: la mayoria de los clientes ya trae MINUTA.COD_LOCAL limpio (sin prefijo), pero ALUSWEET fue el primer caso donde MINUTA SI trae el prefijo (ej. 'EX142' en vez de '142').",
+    "regla_operativa": "SOLO aplicar el 'quitar SUFIJO' de Tabla6 a MINUTA.COD_LOCAL CUANDO la minuta no trae el dato correcto (prefijado cuando no deberia). No asumir de entrada que un cliente nuevo viene limpio o prefijado -- verificar con datos reales antes de generar PLANTILLA.",
+    "orden_de_operaciones_critico": "Dentro de normalizar(), SIEMPRE llamar norm_code() (limpieza de tipo: float->string limpio, ej 84.0 -> '84') ANTES de cualquier logica de matching de prefijo. Hacerlo despues rompe el join y duplica filas silenciosamente (ver deprecated_patterns en 03_ledger.json)."
+  },
+
+  "prioridad_de_indicadores_en_PLANTILLA": {
+    "orden": "1) SEGUIMIENTO (incumplimiento de visita) > 2) OSA (exhibicion) > 3) MINUTA/INMOVILIZADO.",
+    "regla_de_predominancia": "A NIVEL DE SALA (no de SKU): si la sala tiene CUALQUIER linea de OSA, INMOVILIZADO se descarta COMPLETO para esa sala. Rationale de negocio: INMOVILIZADO mide venta cero en las ultimas 2 semanas (sintoma de velocidad de venta); OSA mide disponibilidad en gondola -- si el producto no esta bien exhibido, es esperable que no se venda, asi que resolver OSA primero suele resolver tambien el sintoma de venta.",
+    "excepcion": "STOCK NEGATIVO siempre se combina/muestra, no se descarta por la regla de predominancia de OSA."
+  },
+
+  "modelo_de_riesgo_vigente": {
+    "version": "v2, ponderada por stock (sesion 24), vigente -- reemplaza la v1 de sesion 22 (ver 03_ledger.json, entrada SUPERSEDED)",
+    "columna": "Riesgo, columna M de PLANTILLA, valor 0 a 1",
+    "formula_conceptual": "Riesgo = round(0.5*(tipos/max_tipos) + 0.5*(min(focos,6)/6) * peso_cadena, 2). 'tipos' = cantidad ponderada de indicadores presentes entre {SEGUIMIENTO, OSA, STOCK NEGATIVO, INMOVILIZADO} (OSA e INMOVILIZADO cuentan de forma continua via peso_stock(), no binaria). 'focos' = suma ponderada de magnitudes/cantidad de focos.",
+    "mecanismos_de_override_por_cliente": [
+      "PESOS_POR_CLIENTE: pesos distintos por tipo de indicador segun cliente (ej. BERRYSUR da mas peso operativo a OSA).",
+      "PESOS_CADENA_POR_CLIENTE: multiplicador de peso por cadena/retail dentro de un cliente (capado en 1.0; ej. ALUSWEET da mas peso a WALMART).",
+      "peso_stock(stock, umbral=15): severidad continua 0-1 segun magnitud de stock -- un quiebre con stock muy bajo (ej. 4 unidades) probablemente es descuadre de inventario, no foco real; se pondera menos que un quiebre con stock alto."
+    ],
+    "leccion_de_interpretacion": "'Inmovilizado siempre es 0' se referia a que su definicion tautologica es venta=0 en las ultimas semanas, NO a que su peso en Riesgo deba ser cero. Cuando INMOVILIZADO coincide con OSA/stock es MAS relevante, no menos."
+  },
+
+  "excepciones_y_especificaciones_por_cliente": {
+    "_ver_detalle_vigente_en": "02_state.json -> clientes_activos (este bloque solo documenta el TIPO de excepcion que puede existir, no el detalle actual de cada cliente)",
+    "tipos_de_override_soportados": [
+      "CLIENTES_SIN_REPORTES: clientes donde se omite la seccion REPORTES en PLANTILLA (pocas salas, foco en OSA/MINUTA).",
+      "CLIENTES_MENSAJE_GENERAL: clientes donde el mensaje de sala es general/consolidado en vez de itemizado producto por producto.",
+      "ACCIONES_POR_CLIENTE: texto de accion sugerida personalizado por cliente (ej. BIGU cambio 'obtener mas caras' por 'ajustar layout de sala y buscar oportunidades de mejora en exhibicion' porque el primero generaba friccion con supervisores cuando el producto simplemente no vende).",
+      "Agrupacion especial SKU+Producto para mensajes de mantenimiento (BERRYSUR)."
+    ]
+  },
+
+  "protocolo_entrega_de_formulas_a_usuario": {
+    "_fuente": "LECCION_FORMATO_ENTREGA_DE_FORMULAS_sesion29 en memoria_proyecto.json (historico), consolidada aqui como regla vigente.",
+    "locale_confirmado_del_usuario": "Separador de argumentos: PUNTO Y COMA (;). Funciones: ESPANOL, nombre exacto verificado (ej. SI.ERROR con punto, no 'SIERROR'). Separador decimal: COMA (0,5 no 0.5). Referencias de tabla en la fila actual: corchete DOBLE [@[Columna]], no [@Columna].",
+    "reglas": [
+      "Nunca entregar una formula sin verificar el nombre EXACTO en espanol de cada funcion usada (especialmente las que llevan punto, como SI.ERROR).",
+      "Evitar funciones cuyo nombre regional no este 100% confirmado (ej. VALHORA/TIMEVALUE no aparecio en el autocompletado del usuario en un caso real) -- preferir construir el calculo con funciones ya validadas (IZQUIERDA/EXTRAE/HALLAR/VALOR) en vez de arriesgar un nombre de funcion no confirmado.",
+      "Preferir varias columnas auxiliares simples en vez de una formula gigante anidada -- el usuario tipea manualmente, cada nivel de anidamiento es una oportunidad de error de tipeo.",
+      "Advertir que SI.ERROR puede enmascarar errores reales devolviendo el valor de respaldo (ej. 0) sin ningun aviso visual -- un resultado sospechosamente uniforme en todas las filas amerita revisar la formula interna, no asumir que el dato fuente es real.",
+      "Si un resultado no tiene sentido y no se puede diagnosticar por lectura estatica, pedir al usuario 'Formulas > Auditoria de formulas > Evaluar formula' paso a paso en vez de iterar formulas a ciegas.",
+      "Vigilar el caso de formula matricial (CSE) accidental: si el usuario confirma con Ctrl+Shift+Enter en vez de Enter en una columna de Tabla, el valor puede quedar 'pegado' identico en todas las filas sin error visible. Se detecta leyendo con openpyxl: si la formula vuelve como objeto ArrayFormula en vez de string plano, ese es el problema."
+    ]
+  },
+
+  "reglas_operativas_de_claude_en_este_proyecto": {
+    "automatizacion_COM_excel": [
+      "SIEMPRE usar win32com.client.gencache.EnsureDispatch(win32com.client.DispatchEx('Excel.Application')) -- NUNCA Dispatch() simple, que puede adjuntarse a la sesion de Excel abierta del usuario y arrastrarla en un crash (ocurrio en sesion 6, tumbo archivos que el usuario tenia abiertos).",
+      "AutomationSecurity=3, DisplayAlerts=False, ScreenUpdating=False, y SIEMPRE try/finally cerrando wb.Close(SaveChanges=False) + app.Quit().",
+      "NUNCA llamar CalculateFullRebuild() sobre el archivo motor (pesado) salvo estrictamente necesario -- causo crashes reales de Excel/COM en sesiones previas. El archivo liviano no necesita recalculo (no tiene formulas).",
+      "Usar referencias estructuradas de tabla en forma LARGA (Tabla3[[#This Row],[Columna]]) via COM, no la forma corta [@Columna] -- la corta puede fallar via COM para columnas recien creadas en la misma corrida."
+    ],
+    "protocolo_de_borrador_y_backups": {
+      "vigente_desde": "sesion 32 (2026-08-27), reemplaza el patron anterior de 'backup + escribir directo sobre el archivo real + repetir backup si hay que reintentar'",
+      "motivo": "El patron anterior genero un 'cementerio' de backups (un archivo por cada intento fallido) porque cada corrida escribia directo sobre el archivo real. El usuario lo cuestiono explicitamente en sesion 32 y se acordo este protocolo.",
+      "flujo": [
+        "1) Copiar el archivo real UNA VEZ a una copia de trabajo en el scratchpad de la sesion (no en memoria_claude) antes de iniciar cualquier iteracion de escritura.",
+        "2) Iterar TODO lo necesario -- corridas fallidas, bugs, reparaciones -- sobre esa copia de trabajo. El archivo real queda intocado durante toda la iteracion, sin importar cuantos intentos hagan falta.",
+        "3) Validar exhaustivamente sobre la copia de trabajo (leer el archivo completo, no una muestra: 0 duplicados, 0 errores, 0 blancos, etc.) antes de considerar la tarea lista.",
+        "4) Recien ahi, tomar UN SOLO backup del archivo real (el 'ultimo estado bueno conocido' justo antes de tocarlo) en memoria_claude, y copiar la copia de trabajo validada sobre el archivo real UNA sola vez.",
+        "5) Nunca generar un backup nuevo por cada intento/reintento -- solo uno por tarea/sesion, en el paso 4."
+      ],
+      "distincion_lectura_vs_escritura": "La lectura (openpyxl con read_only=True) nunca es riesgo -- ni siquiera abre el archivo en modo escritura, es gratis diagnosticar/validar asi cuantas veces haga falta. El riesgo real esta solo en las escrituras via COM (Excel real) -- ahi es donde aplica este protocolo de borrador.",
+      "mantenimiento_de_backups_existentes": "Al cierre de una tarea que termino bien, los backups intermedios de intentos fallidos DENTRO de esa misma tarea ya no tienen valor de restauracion (el archivo real nunca reflejo esos estados fallidos) -- se pueden borrar, dejando solo el backup 'antes de esta tarea'. Confirmar con el usuario antes de borrar, salvo que ya haya dado autorizacion general para este patron especifico (dada en sesion 32)."
+    },
+    "alcance_de_escritura": [
+      "Nunca escribir en 02_MINUTAS_CLIENTES.xlsm (motor) sin autorizacion explicita Y acotada a la tarea especifica del momento -- el patron establecido para corregir formulas es: Claude diagnostica y entrega la formula, el usuario la aplica el mismo, Claude valida leyendo (nunca escribe).",
+      "Automatizar con libertad (siempre con backup previo) en 02_MINUTAS_CLIENTES_PLANTILLA.xlsm (resultado liviano) usando los scripts persistentes vigentes.",
+      "Antes de cualquier operacion irreversible (sobrescribir, borrar), hacer backup con timestamp en la misma carpeta RT (patron BACKUP_<archivo>_<AAAAMMDD>_<HHMMSS>)."
+    ],
+    "validacion": [
+      "Al validar una correccion de formulas, leer el ARCHIVO COMPLETO (no una muestra de filas) con openpyxl en data_only=True (valores cacheados) Y data_only=False (texto de formula), buscando tanto errores explicitos (#VALUE!/#REF!/#NAME?) como resultados sospechosamente uniformes en todas las filas.",
+      "openpyxl NUNCA ejecuta el motor de calculo de Excel -- solo lee el ultimo valor que Excel calculo y guardo. Si un valor parece 'pegado' o stale, pedir al usuario Ctrl+Alt+F9 (recalculo completo) y volver a guardar antes de re-diagnosticar.",
+      "Existe capacidad de automatizacion via Excel COM para forzar recalculo y refrescar tablas dinamicas en modo solo lectura -- usar solo con confirmacion explicita del usuario en cada ocasion, y pidiendo que cierre el archivo primero para evitar conflictos de bloqueo."
+    ],
+    "manejo_de_ambiguedad_de_negocio": "Cuando el usuario corrige una interpretacion de negocio de Claude (ej. el caso 'inmovilizado siempre es 0'), documentar la correccion explicitamente en el ledger con status SUPERSEDED sobre la interpretacion vieja -- no dejar ambas conviviendo sin distincion de vigencia.",
+    "escritura_COM_de_muchas_filas_ojo": "Encontrado en sesion 32: escribir un Range.Value con un array 2D grande (~370 filas x 13 columnas) EN UNA SOLA asignacion, o incluso en lotes de 25-50 filas, puede producir filas CORRUPTAS de forma silenciosa -- ya sea con el texto literal '#N/A' en las 13 columnas, filas completamente en blanco, o (el caso mas peligroso porque no salta a la vista) el contenido de OTRA fila del MISMO cliente duplicado en una posicion vecina. Los datos en Python eran correctos fila por fila justo antes de escribir (verificado explicitamente) -- el problema es de la marshalling COM del array grande en este entorno, no de la logica. Mitigacion vigente: escribir FILA POR FILA (Range 1x13 por cada fila, no un array 2D), y despues relaer todo el rango escrito comparando cada fila completa (normalizando numeros-como-texto, ej. '613' vs 613.0, antes de comparar) contra lo esperado -- cualquier fila que no calce se re-escribe individualmente. Aplicar este patron a cualquier escritura futura de mas de ~100 filas via COM."
+  },
+
+  "obligacion_de_entrenador": {
+    "vigente_desde": "sesion 32 (2026-08-27)",
+    "motivo": "El usuario señalo que la memoria funciona como BIBLIOTECA (responde cuando se le pregunta) pero no como ENTRENADOR (no dirige ni anticipa), y que tiene que pedir explicitamente cada nueva ruta de optimizacion -- paso literalmente en las sesiones 30, 31 y 32. Esta regla convierte esa direccion en una obligacion de Claude, no en una peticion del usuario.",
+    "regla": "Al cierre de CADA sesion con trabajo real, y SIN que el usuario lo pida, Claude debe nombrar dos cosas en 1-3 lineas cada una: (a) un paso manual que se repitio y podria automatizarse o encapsularse, y (b) una capacidad de Claude Code o del entorno (skill, slash command, hook, subagente, agente agendado, git, etc.) que encaje con lo que se acaba de hacer y no se este usando todavia. Si en una sesion no hay nada que proponer, decirlo explicitamente en vez de inventar una sugerencia de relleno.",
+    "restriccion": "Proponer NO es ejecutar. Cualquier cambio estructural derivado de esta obligacion requiere autorizacion explicita del usuario, igual que cualquier otra escritura.",
+    "documento_asociado": "05_roadmap.json -- el plan de horizontes contra el cual se contrastan estas propuestas."
+  },
+
+  "agent_operating_model": {
+    "orden_de_lectura_al_iniciar_sesion": [
+      "1) 00_manifest.json -- que cambio desde la ultima vez, hay alguna correccion reciente que deba tener presente.",
+      "2) Este archivo, 01_kernel.json -- reglas y arquitectura estables.",
+      "3) 02_state.json -- snapshot vigente: en que cliente/tarea se quedo, que esta ACTIVO ahora mismo.",
+      "4) 03_ledger.json -- filtrar solo entradas con status ACTIVE para decisiones de negocio; revisar deprecated_patterns para no repetir bugs ya corregidos.",
+      "5) 05_roadmap.json -- hacia donde vamos y por que. Leerlo cuando el trabajo de la sesion pueda avanzar (o contradecir) un horizonte, y para cumplir la obligacion_de_entrenador al cierre.",
+      "6) 04_bitacora_sesiones.json -- SOLO si se necesita contexto narrativo/historico de COMO se llego a una decision. Nunca tratarlo como fuente de verdad si contradice 02_state.json o una entrada ACTIVE del ledger."
+    ],
+    "regla_de_resolucion_de_conflictos": "Si un dato aparece distinto en dos documentos: 02_state.json > 03_ledger.json (solo entradas ACTIVE) > 01_kernel.json > 04_bitacora_sesiones.json. La bitacora nunca gana. 05_roadmap.json queda fuera de esta jerarquia: es plan, no estado -- nunca es fuente de verdad sobre lo que ES cierto hoy."
+  }
+}

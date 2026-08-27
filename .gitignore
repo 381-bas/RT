@@ -1,0 +1,54 @@
+# --- Principio (ver memoria_claude/01_kernel.json): ---
+# Git guarda el razonamiento y las herramientas, NUNCA los datos.
+# Un binario grande que entra al historial queda ahi para siempre aunque se borre despues.
+# Por eso este archivo existe ANTES del primer commit, no despues.
+
+# Excel / datos operativos (en cualquier carpeta)
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.zip
+
+# Carpetas de archivo/fuente puramente de datos
+/HISTORIA/
+/DB_/
+/CC/
+/RR/
+/RRHH/
+/PILAR/
+/HojasMaps/
+
+# Estructura de encargo (H1): 1_fuente y 3_entrega son datos, nunca codigo
+**/1_fuente/
+**/3_entrega/
+
+# Snapshots/backups del protocolo de borrador (sesion 32) -- son binarios de trabajo,
+# nunca versionados; el "backup" de codigo ahora es git mismo.
+memoria_claude/BACKUP_*
+BACKUP_*
+
+# Artefactos de texto sueltos en la raiz (dumps, checks) -- la memoria SI se versiona
+*.txt
+!memoria_claude/**/*.txt
+
+# PDFs y otros documentos pesados sueltos en la raiz
+*.pdf
+
+# Runtime / locks de Claude Code (no es codigo, es estado de ejecucion local)
+.claude/*.lock
+.claude/scheduled_tasks.lock
+
+# Basura de SO
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Archivos de recuperacion/crash de Excel sin extension (binarios .xlsx sueltos en la raiz)
+/74665200
+/D53F4200
+
+# CONTIENE CREDENCIALES EN TEXTO PLANO (cadenas de conexion Supabase con password) --
+# jamas debe ir a git, y menos a un repo publico. Ver aviso de sesion 33.
+/in
+

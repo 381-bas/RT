@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "document_type": "manifest",
+  "project": "RT_trazabilidad_retail",
+  "version": 1,
+  "generated_at": "2026-08-26",
+  "leer_esto_primero": "Este es el primer archivo a abrir en cualquier sesion nueva. Dice que cambio y donde esta cada cosa.",
+
+  "source_previous_version": "memoria_proyecto.json (version_memoria 29, un unico JSON narrativo acumulativo de 29 sesiones, ~176KB)",
+
+  "correction_reason": "El usuario cuestiono el modelo de memoria: un unico archivo que solo ACUMULA entradas por sesion no distingue una decision VIGENTE de una SUPERADA (ej. la formula de Riesgo v1 fue reemplazada por v2, pero ambas convivian en el mismo nivel sin marca de vigencia). Riesgo real: una sesion futura podria leer un hecho historico ya corregido y tratarlo como cierto. Se migro a un modelo de 4 documentos con roles distintos, inspirado en un patron que el usuario ya usa en otro proyecto (KERNEL BASE FINAL: manifest/kernel/state/ledger).",
+
+  "modelo_de_documentos": {
+    "00_manifest.json": "Este archivo. Que cambio, por que, y el orden de lectura. Se actualiza (se sobreescribe) cada vez que la estructura de memoria misma cambia -- no cada sesion de trabajo normal.",
+    "01_kernel.json": "Arquitectura y reglas ESTABLES: los dos archivos Excel, las tablas clave, el modelo de Riesgo vigente, el protocolo de entrega de formulas, las reglas operativas de Claude (COM, backups, alcance de escritura). Cambia poco. Autoridad maxima sobre COMO trabajar.",
+    "02_state.json": "Snapshot del estado ACTUAL. Se SOBREESCRIBE (no se acumula) al cierre de cada sesion relevante: en que quedo cada cliente, que scripts son los vigentes, que se valido por ultima vez, que riesgos siguen abiertos hoy. Autoridad maxima sobre QUE es cierto ahora mismo.",
+    "03_ledger.json": "Registro de decisiones de negocio/tecnicas, append-only, cada una con status ACTIVE o SUPERSEDED. Mas 'deprecated_patterns': antipatrones/bugs ya vividos, para nunca repetirlos. Autoridad sobre CUANDO se decidio algo y si sigue vigente.",
+    "04_bitacora_sesiones.json": "La narrativa historica sesion por sesion (heredada de memoria_proyecto.json). Solo para contexto de COMO se llego a algo. Nunca autoritativa si contradice los otros 3 documentos.",
+    "05_roadmap.json": "PLAN, no estado (agregado en sesion 32). Diagnostico de brechas del proyecto y horizontes H1-H6 con su orden recomendado, mas la lista explicita de lo que NO hay que hacer todavia y por que. Se revisa completo cada cierto tiempo, no se apendiza cada sesion. Queda FUERA de la jerarquia de resolucion de conflictos: nunca es fuente de verdad sobre lo que es cierto hoy.",
+    "AGENT.md": "Punto de entrada legible para Claude (y para el usuario). Explica el orden de lectura y las reglas de oro del proyecto en prosa corta.",
+    "memoria_proyecto.json": "CONGELADO, no se vuelve a editar. Se conserva como respaldo/archivo crudo de las 29 sesiones originales, por si hace falta auditar el detalle completo de algo que la migracion resumio."
+  },
+
+  "locked_unchanged": ["memoria_proyecto.json (respaldo historico, congelado en version_memoria 29)"],
+
+  "updated_files": [
+    "00_manifest.json (nuevo)",
+    "01_kernel.json (nuevo, extraido y consolidado de memoria_proyecto.json)",
+    "02_state.json (nuevo, snapshot al 2026-08-26)",
+    "03_ledger.json (nuevo, decisiones con status ACTIVE/SUPERSEDED + deprecated_patterns)",
+    "04_bitacora_sesiones.json (nuevo, = historial_sesiones de memoria_proyecto.json sin cambios de contenido)",
+    "AGENT.md (nuevo)"
+  ],
+
+  "proximo_mantenimiento": "Al cierre de cada sesion relevante: (1) sobreescribir 02_state.json con el snapshot nuevo, (2) agregar entradas nuevas a 03_ledger.json marcando SUPERSEDED lo que corresponda, (3) agregar la sesion a 04_bitacora_sesiones.json, (4) tocar 01_kernel.json y este manifest SOLO si cambia una regla estructural o el modelo de memoria mismo."
+}

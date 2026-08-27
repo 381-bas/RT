@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "document_type": "state",
+  "project": "RT_trazabilidad_retail",
+  "version": 1,
+  "generated_at": "2026-08-26",
+  "authority": "SNAPSHOT VIGENTE. Este documento se SOBREESCRIBE (no se acumula) al cierre de cada sesion relevante -- refleja el estado actual, no el historico. Para historia, ver 04_bitacora_sesiones.json. Para decisiones con fecha y status, ver 03_ledger.json.",
+
+  "overall_status": "Sesion 32: se agregaron BESHOS, BERRYSUR, BIGU, GRANA (MINUTA cargada) y MORETTA (solo OSA+REPORTES, sin MINUTA) via build_plantilla_v14.py. Ahora los 10 clientes conocidos estan activos simultaneamente en PLANTILLA: 372 filas, 0 duplicados, 0 errores. En el camino se encontro y corrigio un bug real de escritura COM (filas corruptas al azar en escrituras grandes) -- ver 01_kernel.json, escritura_COM_de_muchas_filas_ojo.",
+
+  "current_focus": "Los 10 clientes conocidos (ALUSWEET, BERRYSUR, BESHOS, BIGU, CORRALES DEL SUR, FROZT, GRANA, MAILEMU MIEL, MORETTA, TNOGAL) estan activos en PLANTILLA. A la espera de que el usuario indique el proximo cliente nuevo o la proxima vuelta de analisis.",
+
+  "scripts_vigentes": {
+    "carpeta": "C:\\Users\\basti\\Desktop\\RT\\memoria_claude\\scripts\\",
+    "build_plantilla_v14.py": "Pipeline PLANTILLA vigente (reemplaza v13). Cambios: (1) `clientes_foco` = MINUTA + set explicito CLIENTES_EXTRA_SIN_MINUTA (hoy: MORETTA) -- un cliente con datos SOLO en REPORTES/OSA ya no queda excluido en silencio, pero tampoco se infiere automaticamente desde TODO el universo de REPORTES/OSA (eso trajo 44 clientes de golpe en un intento fallido, revertido). (2) CLIENTES_SOLO_OSA_REPORTES (hoy: MORETTA) ignora cualquier fila de MINUTA para ese cliente. (3) La escritura a PLANTILLA es FILA POR FILA (no un array 2D grande ni por lotes) mas verificacion+reparacion posterior -- se encontro que escrituras grandes via COM corrompian filas al azar en este entorno (ver 01_kernel.json, escritura_COM_de_muchas_filas_ojo). Validado sobre 372 filas: 0 duplicados, 0 blancos, 0 errores, 0 quiebres, 100% Local/Gestor/Supervisor.",
+    "build_observaciones.py": "Analisis de VENTAS -> hallazgos -> hoja OBSERVACIONES, para ALUSWEET. Parametros manuales a actualizar cada semana: SEMANAS_2025=4, SEMANAS_2026_CERRADAS=3 (sesion 31, subio de 2 -- AJUSTAR cuando cierren mas semanas), CADENA_FOCO=WALMART, TOP_N_PEORES_SALAS=10. Desde sesion 31 agrega categoria CRUCE_VENTA_OPERACION: cruza las peores salas por caida YoY contra PLANTILLA (debe correrse DESPUES de build_plantilla_v13.py en la misma sesion) para ver cuales tienen ademas un indicador operativo activo esa semana.",
+    "regla_de_persistencia": "Estos scripts viven SOLO en esta carpeta (no en el scratchpad de sesion, que se borra entre sesiones -- se perdio una version asi en sesion 24 y hubo que reconstruir). Cualquier ajuste futuro debe partir de estos archivos y copiar el resultado de vuelta aqui."
+  },
+
+  "ultima_validacion_OSA_motor": {
+    "fecha": "2026-08-26",
+    "archivo": "02_MINUTAS_CLIENTES.xlsm, hoja OSA (Tabla3)",
+    "resultado": "73.787 filas, 0 errores de formula (#VALUE!/#REF!/#NAME?) en ninguna columna calculada. HORA_24/FECHA_HORA calculando la hora real correctamente. ALERTA_CRITICA=1 en 2.061 filas. ES_ULTIMO_REGISTRO=1 en 23.830 filas.",
+    "pendiente": "La tabla dinamica de OSA en la hoja DINAMICA aun mostraba #N/A en la ultima revision -- requiere que el usuario la actualice manualmente (Datos > Actualizar todo). No es un error nuevo, es un refresh pendiente."
+  },
+
+  "ultima_validacion_PLANTILLA_liviano": {
+    "fecha": "sesion 32 (2026-08-27)",
+    "archivo": "02_MINUTAS_CLIENTES_PLANTILLA.xlsm",
+    "resultado": "372 filas totales con build_plantilla_v14.py: BESHOS 98, ALUSWEET 59, CORRALES DEL SUR 53, BERRYSUR 40, TNOGAL 34, MAILEMU MIEL 29, GRANA 24, BIGU 17, FROZT 10, MORETTA 8 (solo SEGUIMIENTO+OSA, sin MINUTA). 0 duplicados, 0 blancos, 0 errores, 0 quiebres, 100% Local/Gestor/Supervisor completados.",
+    "nota": "Escritura fila-por-fila (no array 2D) fue necesaria para evitar corrupcion silenciosa de filas -- ver 01_kernel.json."
+  },
+
+  "clientes_activos": {
+    "MAILEMU_MIEL": {"status": "ACTIVO", "notas": "Cliente estandar, sin excepciones especiales registradas. Datos de esta semana (sesion 30) ya cargados: 29 filas en PLANTILLA."},
+    "GRANA": {"status": "ACTIVO", "notas": "Sesion 32: MINUTA cargada, 24 filas en PLANTILLA."},
+    "TNOGAL": {"status": "ACTIVO", "notas": "34 filas en PLANTILLA (sesion 30). Exclusion de productos 'LIBRO' (es_libro()) sigue aplicando en MINUTA y OSA para este cliente."},
+    "CORRALES_DEL_SUR": {
+      "status": "ACTIVO",
+      "notas": "Datos de esta semana (sesion 30): 53 filas en PLANTILLA, todas WALMART, mensaje 'REVISION GENERAL' (no itemizado).",
+      "override": "CLIENTES_SIN_REPORTES + CLIENTES_MENSAJE_GENERAL"
+    },
+    "BESHOS": {
+      "status": "ACTIVO",
+      "notas": "Cliente donde se introdujo la columna Riesgo (columna M) por primera vez. Sesion 32: MINUTA cargada, 98 filas en PLANTILLA (el cliente con mas filas de todos)."
+    },
+    "BIGU": {
+      "status": "ACTIVO",
+      "notas": "Marca de rollos de fruta/vegetales, categoria 'mundo bio'. Variedades con agrupacion obligatoria en pareja (BETARRAGA-FRUTILLA, ZANAHORIA-MANGO, ZAPALLO-PINA, ESPINACA-MANZANA). Texto de accion de INMOVILIZADO personalizado: 'ajustar layout de sala y buscar oportunidades de mejora en exhibicion' (reemplaza 'obtener mas caras', que generaba friccion con supervisores).",
+      "override": "ACCIONES_POR_CLIENTE (texto INMOVILIZADO renovado, sesion 25, aplica tambien como default general desde entonces)"
+    },
+    "BERRYSUR": {
+      "status": "ACTIVO",
+      "notas": "Cuenta de baja rotacion por naturaleza: 85 de 89 filas MINUTA (95%) son INMOVILIZADO. Prioridad operativa mayor a OSA (17 filas, comparativamente raro y por eso mas significativo). Mensajes de INMOVILIZADO agrupados por SKU+Producto.",
+      "override": "PESOS_POR_CLIENTE (mas peso a OSA) + agrupacion especial SKU+Producto",
+      "pendiente_no_bloqueante": "Prefijo AR10 / STOP LOS TRAPENSES sin mapear en Tabla6 (sesion 26, no resuelto, no bloqueante)."
+    },
+    "ALUSWEET": {
+      "status": "ACTIVO",
+      "notas": "Cliente 'de peso' (venta y rotacion altas). Capa adicional: hoja VENTAS (comparativo YoY por SKU/local) y hoja OBSERVACIONES (hallazgos para reunion comercial), generadas por build_observaciones.py. Foco principal en WALMART. Peso de cadena mayor para WALMART, resto de cadenas en peso default. Sesion 31: nueva semana con MINUTA mucho mas grande (251 filas vs ~84 antes) -- 59 filas en PLANTILLA.",
+      "override": "PESOS_CADENA_POR_CLIENTE (WALMART > resto)",
+      "correccion_relevante": "Desde v12/v13 la cadena/codigo de MINUTA se deriva de su propia columna COD KPI ONE (no de RETAIL), asi que el casing mixto de RETAIL ('Cencosud' en vez de 'CENCOSUD', visto de nuevo en sesion 31) ya NO afecta el resultado -- el bug de sesion 27/28 quedo neutralizado estructuralmente, no solo parchado.",
+      "benchmark_YoY": "2025 = 4 semanas cerradas de calendario. 2026 = 3 semanas cerradas (actualizado sesion 31, subio de 2). Comparar SIEMPRE promedio por semana, nunca totales crudos entre periodos de distinta duracion.",
+      "hallazgo_sesion_31": "WALMART cae -3.1% YoY en promedio (antes lucia -1.3%, la caida real es un poco mayor con la 3ra semana), pero el promedio esconde dispersion: 36 de 60 salas empeoran. Nuevo cruce CRUCE_VENTA_OPERACION: 5 de las 10 peores salas por caida YoY TIENEN ademas un indicador operativo activo esta semana (OSA/INMOVILIZADO/STOCK NEGATIVO) -- primera evidencia concreta de que parte de la caida de venta es gestionable en terreno, no solo mercado."
+    },
+    "FROZT": {
+      "status": "ACTIVO",
+      "notas": "Cliente nuevo (sesion 31), primera semana con datos. 10 filas en PLANTILLA (4 OSA, 6 INMOVILIZADO). Sin excepciones especiales registradas todavia. Sin datos en hoja VENTAS -- NO tiene capa de analisis YoY/OBSERVACIONES (a diferencia de ALUSWEET), solo PLANTILLA estandar."
+    },
+    "MORETTA": {
+      "status": "ACTIVO",
+      "notas": "Cliente nuevo (sesion 32). Pedido explicito del usuario: PLANTILLA solo con OSA y REPORTES, sin MINUTA (no tiene datos ahi de todas formas esta semana, pero la regla es explicita y durara aunque en el futuro llegue a tener MINUTA). 8 filas en PLANTILLA (5 SEGUIMIENTO, 3 OSA).",
+      "override": "CLIENTES_EXTRA_SIN_MINUTA + CLIENTES_SOLO_OSA_REPORTES"
+    }
+  },
+
+  "riesgos_abiertos_actuales": [
+    "RECURRENCIA_SEMANA (OSA) no esta acotada por semana calendario -- cuenta recurrencia historica total, no solo la semana vigente. Deferred desde sesion 13/23, decision consciente de no resolver aun.",
+    "RUTA_RUTERO: typo 'RESULTO' (deberia ser 'RESUELTO') en el nombre de una columna. Cosmetico, no bloqueante, no tocar sin pedido explicito.",
+    "BERRYSUR: prefijo AR10 / STOP LOS TRAPENSES sin mapear en Tabla6. No bloqueante.",
+    "DINAMICA (panel OSA) pendiente de refresh manual por el usuario tras la correccion de formulas de sesion 29."
+  ],
+
+  "proxima_sesion_deberia": "Usar build_plantilla_v14.py (no v11/v12/v13) para cualquier actualizacion de PLANTILLA -- escribe fila por fila con verificacion, nunca en un solo array grande via COM (ver leccion en 01_kernel.json). Si aparece un cliente sin datos en MINUTA, agregarlo a CLIENTES_EXTRA_SIN_MINUTA (y a CLIENTES_SOLO_OSA_REPORTES si corresponde) en vez de inferir el universo completo de REPORTES/OSA. Si pide otra vuelta de analisis para ALUSWEET, confirmar el numero de semanas cerradas de 2026 antes de correr build_observaciones.py (no asumir, ya cambio 2 veces: 2->3). Para clientes nuevos sin hoja VENTAS, no ofrecer analisis YoY hasta que el usuario confirme que existe esa fuente. No re-diagnosticar OSA del motor desde cero salvo que el usuario reporte un cambio nuevo."
+}

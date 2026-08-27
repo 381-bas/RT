@@ -1,0 +1,1909 @@
+{
+  "source_file": "C:\\Users\\basti\\Desktop\\RT\\CLIENTE_GG\\ANÁLISIS_BESHOS.xlsx",
+  "generated_at": "2026-08-26T16:32:39.547900",
+  "metric": "units (Qty)",
+  "period_note": "Todas las semanas ISO 2026 con data disponible (S1 a S33).",
+  "baseline_note": "Toma de cuenta: 22-06-2026 = ISO semana 26, 2026. pre_post_takeover compara promedio semanal ANTES (S1-25) vs DESDE (S26-33).",
+  "walmart_note": "WALMART se filtra desde el ingreso de datos a los 3 SKU realmente activos de BESHOS (700420, 700421, 5064681). El resto de codigos que aparecen en VTA_WALMART desde sem.30 corresponden a otras lineas de producto (nectares, te helado) y se descartan por completo: no se consideran en ninguna cifra ni grafico de este informe.",
+  "retailers": {
+    "WALMART": {
+      "weekly_series": [
+        {
+          "iso_week": 1,
+          "week_start": "2025-12-29",
+          "units": 989.0
+        },
+        {
+          "iso_week": 2,
+          "week_start": "2026-01-05",
+          "units": 582.0
+        },
+        {
+          "iso_week": 3,
+          "week_start": "2026-01-12",
+          "units": 590.0
+        },
+        {
+          "iso_week": 4,
+          "week_start": "2026-01-19",
+          "units": 639.0
+        },
+        {
+          "iso_week": 5,
+          "week_start": "2026-01-26",
+          "units": 646.0
+        },
+        {
+          "iso_week": 6,
+          "week_start": "2026-02-02",
+          "units": 680.0
+        },
+        {
+          "iso_week": 7,
+          "week_start": "2026-02-09",
+          "units": 622.0
+        },
+        {
+          "iso_week": 8,
+          "week_start": "2026-02-16",
+          "units": 584.0
+        },
+        {
+          "iso_week": 9,
+          "week_start": "2026-02-23",
+          "units": 742.0
+        },
+        {
+          "iso_week": 10,
+          "week_start": "2026-03-02",
+          "units": 772.0
+        },
+        {
+          "iso_week": 11,
+          "week_start": "2026-03-09",
+          "units": 737.0
+        },
+        {
+          "iso_week": 12,
+          "week_start": "2026-03-16",
+          "units": 740.0
+        },
+        {
+          "iso_week": 13,
+          "week_start": "2026-03-23",
+          "units": 740.0
+        },
+        {
+          "iso_week": 14,
+          "week_start": "2026-03-30",
+          "units": 785.0
+        },
+        {
+          "iso_week": 15,
+          "week_start": "2026-04-06",
+          "units": 657.0
+        },
+        {
+          "iso_week": 16,
+          "week_start": "2026-04-13",
+          "units": 653.0
+        },
+        {
+          "iso_week": 17,
+          "week_start": "2026-04-20",
+          "units": 668.0
+        },
+        {
+          "iso_week": 18,
+          "week_start": "2026-04-27",
+          "units": 617.0
+        },
+        {
+          "iso_week": 19,
+          "week_start": "2026-05-04",
+          "units": 922.0
+        },
+        {
+          "iso_week": 20,
+          "week_start": "2026-05-11",
+          "units": 785.0
+        },
+        {
+          "iso_week": 21,
+          "week_start": "2026-05-18",
+          "units": 846.0
+        },
+        {
+          "iso_week": 22,
+          "week_start": "2026-05-25",
+          "units": 810.0
+        },
+        {
+          "iso_week": 23,
+          "week_start": "2026-06-01",
+          "units": 907.0
+        },
+        {
+          "iso_week": 24,
+          "week_start": "2026-06-08",
+          "units": 883.0
+        },
+        {
+          "iso_week": 25,
+          "week_start": "2026-06-15",
+          "units": 895.0
+        },
+        {
+          "iso_week": 26,
+          "week_start": "2026-06-22",
+          "units": 894.0
+        },
+        {
+          "iso_week": 27,
+          "week_start": "2026-06-29",
+          "units": 982.0
+        },
+        {
+          "iso_week": 28,
+          "week_start": "2026-07-06",
+          "units": 891.0
+        },
+        {
+          "iso_week": 29,
+          "week_start": "2026-07-13",
+          "units": 940.0
+        },
+        {
+          "iso_week": 30,
+          "week_start": "2026-07-20",
+          "units": 858.0
+        },
+        {
+          "iso_week": 31,
+          "week_start": "2026-07-27",
+          "units": 1254.0
+        },
+        {
+          "iso_week": 32,
+          "week_start": "2026-08-03",
+          "units": 1279.0
+        },
+        {
+          "iso_week": 33,
+          "week_start": "2026-08-10",
+          "units": 1090.0
+        }
+      ],
+      "total_units_2026": 26679.0,
+      "pre_post_takeover": {
+        "pre_weeks": 25,
+        "pre_avg_per_week": 739.6,
+        "post_weeks": 8,
+        "post_avg_per_week": 1023.5,
+        "pct_change": 38.4
+      },
+      "sku_count": 4,
+      "store_count": 173,
+      "top_skus": [
+        {
+          "sku": 700420,
+          "desc": "MERENGUES DDL S/A",
+          "total_units": 11425.0,
+          "share_pct": 42.8,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 324.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 413.0,
+          "pct_change": 27.1
+        },
+        {
+          "sku": 700421,
+          "desc": "MERENGUES VAIN S/A",
+          "total_units": 10703.0,
+          "share_pct": 40.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 307.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 376.1,
+          "pct_change": 22.2
+        },
+        {
+          "sku": 5064681,
+          "desc": "MERENGUES ORI S/A",
+          "total_units": 3187.0,
+          "share_pct": 11.9,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 78.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 154.2,
+          "pct_change": 97.5
+        },
+        {
+          "sku": 700419,
+          "desc": "MERENGUES CHOC S/A",
+          "total_units": 1364.0,
+          "share_pct": 5.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 28.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 80.1,
+          "pct_change": 177.1
+        }
+      ],
+      "bottom_movers_skus": [
+        {
+          "sku": 700421,
+          "desc": "MERENGUES VAIN S/A",
+          "total_units": 10703.0,
+          "share_pct": 40.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 307.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 376.1,
+          "pct_change": 22.2
+        },
+        {
+          "sku": 700420,
+          "desc": "MERENGUES DDL S/A",
+          "total_units": 11425.0,
+          "share_pct": 42.8,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 324.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 413.0,
+          "pct_change": 27.1
+        },
+        {
+          "sku": 5064681,
+          "desc": "MERENGUES ORI S/A",
+          "total_units": 3187.0,
+          "share_pct": 11.9,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 78.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 154.2,
+          "pct_change": 97.5
+        },
+        {
+          "sku": 700419,
+          "desc": "MERENGUES CHOC S/A",
+          "total_units": 1364.0,
+          "share_pct": 5.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 28.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 80.1,
+          "pct_change": 177.1
+        }
+      ],
+      "top_stores": [
+        {
+          "store": 57,
+          "store_name": "VITACURA",
+          "total_units": 1192.0,
+          "share_pct": 4.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 34.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 40.6,
+          "pct_change": 17.1
+        },
+        {
+          "store": 121,
+          "store_name": "PUNTA ARENAS",
+          "total_units": 1177.0,
+          "share_pct": 4.4,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 35.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 35.8,
+          "pct_change": 0.3
+        },
+        {
+          "store": 97,
+          "store_name": "PUENTE NUEVO",
+          "total_units": 772.0,
+          "share_pct": 2.9,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 20.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 31.5,
+          "pct_change": 51.4
+        },
+        {
+          "store": 88,
+          "store_name": "LOS DOMINICOS",
+          "total_units": 631.0,
+          "share_pct": 2.4,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 19.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 19.1,
+          "pct_change": 0.0
+        },
+        {
+          "store": 3,
+          "store_name": "IRARRAZAVAL",
+          "total_units": 609.0,
+          "share_pct": 2.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 17.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 21.8,
+          "pct_change": 25.0
+        },
+        {
+          "store": 32,
+          "store_name": "GRAN AVENIDA",
+          "total_units": 597.0,
+          "share_pct": 2.2,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 17.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 20.2,
+          "pct_change": 16.4
+        },
+        {
+          "store": 55,
+          "store_name": "MACUL",
+          "total_units": 587.0,
+          "share_pct": 2.2,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 17.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 17.8,
+          "pct_change": -0.3
+        },
+        {
+          "store": 626,
+          "store_name": "PRINCIPE DE GALES",
+          "total_units": 582.0,
+          "share_pct": 2.2,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 15.2,
+          "post_weeks": 8,
+          "post_avg_per_week": 25.1,
+          "pct_change": 64.9
+        }
+      ],
+      "bottom_movers_stores": [
+        {
+          "store": 687,
+          "store_name": "TEMUCO CAUPOLICAN",
+          "total_units": 44.0,
+          "share_pct": 0.2,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 1.8,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "store": 647,
+          "store_name": "MAITENCILLO",
+          "total_units": 68.0,
+          "share_pct": 0.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 2.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 1.0,
+          "pct_change": -58.3
+        },
+        {
+          "store": 60,
+          "store_name": "LATADIA",
+          "total_units": 187.0,
+          "share_pct": 0.7,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 6.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 3.8,
+          "pct_change": -40.3
+        },
+        {
+          "store": 991,
+          "store_name": "LA SERENA (LAS PARCELAS)",
+          "total_units": 180.0,
+          "share_pct": 0.7,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 5.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 4.0,
+          "pct_change": -32.4
+        },
+        {
+          "store": 635,
+          "store_name": "ARICA (PEDRO MONTT)",
+          "total_units": 121.0,
+          "share_pct": 0.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 3.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.9,
+          "pct_change": -26.7
+        }
+      ]
+    },
+    "JUMBO": {
+      "weekly_series": [
+        {
+          "iso_week": 1,
+          "week_start": "2025-12-29",
+          "units": 1695.0
+        },
+        {
+          "iso_week": 2,
+          "week_start": "2026-01-05",
+          "units": 930.0
+        },
+        {
+          "iso_week": 3,
+          "week_start": "2026-01-12",
+          "units": 968.0
+        },
+        {
+          "iso_week": 4,
+          "week_start": "2026-01-19",
+          "units": 1016.0
+        },
+        {
+          "iso_week": 5,
+          "week_start": "2026-01-26",
+          "units": 1033.0
+        },
+        {
+          "iso_week": 6,
+          "week_start": "2026-02-02",
+          "units": 1024.0
+        },
+        {
+          "iso_week": 7,
+          "week_start": "2026-02-09",
+          "units": 911.0
+        },
+        {
+          "iso_week": 8,
+          "week_start": "2026-02-16",
+          "units": 952.0
+        },
+        {
+          "iso_week": 9,
+          "week_start": "2026-02-23",
+          "units": 1095.0
+        },
+        {
+          "iso_week": 10,
+          "week_start": "2026-03-02",
+          "units": 1258.0
+        },
+        {
+          "iso_week": 11,
+          "week_start": "2026-03-09",
+          "units": 1213.0
+        },
+        {
+          "iso_week": 12,
+          "week_start": "2026-03-16",
+          "units": 1230.0
+        },
+        {
+          "iso_week": 13,
+          "week_start": "2026-03-23",
+          "units": 1168.0
+        },
+        {
+          "iso_week": 14,
+          "week_start": "2026-03-30",
+          "units": 1227.0
+        },
+        {
+          "iso_week": 15,
+          "week_start": "2026-04-06",
+          "units": 1040.0
+        },
+        {
+          "iso_week": 16,
+          "week_start": "2026-04-13",
+          "units": 1009.0
+        },
+        {
+          "iso_week": 17,
+          "week_start": "2026-04-20",
+          "units": 1064.0
+        },
+        {
+          "iso_week": 18,
+          "week_start": "2026-04-27",
+          "units": 956.0
+        },
+        {
+          "iso_week": 19,
+          "week_start": "2026-05-04",
+          "units": 1187.0
+        },
+        {
+          "iso_week": 20,
+          "week_start": "2026-05-11",
+          "units": 1177.0
+        },
+        {
+          "iso_week": 21,
+          "week_start": "2026-05-18",
+          "units": 1205.0
+        },
+        {
+          "iso_week": 22,
+          "week_start": "2026-05-25",
+          "units": 1124.0
+        },
+        {
+          "iso_week": 23,
+          "week_start": "2026-06-01",
+          "units": 1202.0
+        },
+        {
+          "iso_week": 24,
+          "week_start": "2026-06-08",
+          "units": 1268.0
+        },
+        {
+          "iso_week": 25,
+          "week_start": "2026-06-15",
+          "units": 1299.0
+        },
+        {
+          "iso_week": 26,
+          "week_start": "2026-06-22",
+          "units": 1106.0
+        },
+        {
+          "iso_week": 27,
+          "week_start": "2026-06-29",
+          "units": 1224.0
+        },
+        {
+          "iso_week": 28,
+          "week_start": "2026-07-06",
+          "units": 1156.0
+        },
+        {
+          "iso_week": 29,
+          "week_start": "2026-07-13",
+          "units": 1109.0
+        },
+        {
+          "iso_week": 30,
+          "week_start": "2026-07-20",
+          "units": 1055.0
+        },
+        {
+          "iso_week": 31,
+          "week_start": "2026-07-27",
+          "units": 1113.0
+        },
+        {
+          "iso_week": 32,
+          "week_start": "2026-08-03",
+          "units": 1278.0
+        },
+        {
+          "iso_week": 33,
+          "week_start": "2026-08-10",
+          "units": 1206.0
+        }
+      ],
+      "total_units_2026": 37498.0,
+      "pre_post_takeover": {
+        "pre_weeks": 25,
+        "pre_avg_per_week": 1130.0,
+        "post_weeks": 8,
+        "post_avg_per_week": 1155.9,
+        "pct_change": 2.3
+      },
+      "sku_count": 6,
+      "store_count": 65,
+      "top_skus": [
+        {
+          "sku": 1702063,
+          "desc": "MERENGUITOS BESHOS S/AZUC ORIGINAL 45GR",
+          "total_units": 13883.0,
+          "share_pct": 37.0,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 420.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 421.6,
+          "pct_change": 0.3
+        },
+        {
+          "sku": 1702065,
+          "desc": "MERENGUITOS BESHOS S/AZUC DULCE LECH 45G",
+          "total_units": 9152.0,
+          "share_pct": 24.4,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 267.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 307.0,
+          "pct_change": 14.6
+        },
+        {
+          "sku": 1843207,
+          "desc": "MERENGUITOS BESHOLATE LIGHT 55 GR",
+          "total_units": 6497.0,
+          "share_pct": 17.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 197.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 195.6,
+          "pct_change": -0.8
+        },
+        {
+          "sku": 2033573,
+          "desc": "MERENGUITOS LIGHT LUCUMA BESHOS 45GR",
+          "total_units": 6473.0,
+          "share_pct": 17.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 186.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 226.0,
+          "pct_change": 21.1
+        },
+        {
+          "sku": 1702062,
+          "desc": "MERENGUITOS BESHOS S/AZUC VAINILLA 45GR",
+          "total_units": 1472.0,
+          "share_pct": 3.9,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 57.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 5.6,
+          "pct_change": -90.1
+        },
+        {
+          "sku": 1702064,
+          "desc": "MERENGUITOS BESHOS S/AZUC CAPUCCINO 45GR",
+          "total_units": 21.0,
+          "share_pct": 0.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 0.8,
+          "post_weeks": 6,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        }
+      ],
+      "bottom_movers_skus": [
+        {
+          "sku": 1702064,
+          "desc": "MERENGUITOS BESHOS S/AZUC CAPUCCINO 45GR",
+          "total_units": 21.0,
+          "share_pct": 0.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 0.8,
+          "post_weeks": 6,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "sku": 1702062,
+          "desc": "MERENGUITOS BESHOS S/AZUC VAINILLA 45GR",
+          "total_units": 1472.0,
+          "share_pct": 3.9,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 57.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 5.6,
+          "pct_change": -90.1
+        },
+        {
+          "sku": 1843207,
+          "desc": "MERENGUITOS BESHOLATE LIGHT 55 GR",
+          "total_units": 6497.0,
+          "share_pct": 17.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 197.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 195.6,
+          "pct_change": -0.8
+        },
+        {
+          "sku": 1702063,
+          "desc": "MERENGUITOS BESHOS S/AZUC ORIGINAL 45GR",
+          "total_units": 13883.0,
+          "share_pct": 37.0,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 420.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 421.6,
+          "pct_change": 0.3
+        },
+        {
+          "sku": 1702065,
+          "desc": "MERENGUITOS BESHOS S/AZUC DULCE LECH 45G",
+          "total_units": 9152.0,
+          "share_pct": 24.4,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 267.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 307.0,
+          "pct_change": 14.6
+        }
+      ],
+      "top_stores": [
+        {
+          "store": "J501",
+          "store_name": "J501-JUMBO BILBAO",
+          "total_units": 2130.0,
+          "share_pct": 5.7,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 64.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 65.0,
+          "pct_change": 0.9
+        },
+        {
+          "store": "J411",
+          "store_name": "J411-DARK STORE COSTANERA CENT",
+          "total_units": 1922.0,
+          "share_pct": 5.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 57.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 60.8,
+          "pct_change": 5.8
+        },
+        {
+          "store": "J512",
+          "store_name": "J512-JUMBO LA REINA",
+          "total_units": 1918.0,
+          "share_pct": 5.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 59.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 53.2,
+          "pct_change": -10.8
+        },
+        {
+          "store": "J502",
+          "store_name": "J502-JUMBO KENNEDY",
+          "total_units": 1876.0,
+          "share_pct": 5.0,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 59.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 48.0,
+          "pct_change": -19.6
+        },
+        {
+          "store": "J511",
+          "store_name": "J511-JUMBO COSTANERA",
+          "total_units": 1589.0,
+          "share_pct": 4.2,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 48.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 47.6,
+          "pct_change": -1.4
+        },
+        {
+          "store": "J775",
+          "store_name": "J775-JUMBO ÑUÑOA",
+          "total_units": 1283.0,
+          "share_pct": 3.4,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 38.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 41.4,
+          "pct_change": 8.7
+        },
+        {
+          "store": "J521",
+          "store_name": "J521-JUMBO LA SERENA",
+          "total_units": 1224.0,
+          "share_pct": 3.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 38.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 33.2,
+          "pct_change": -13.2
+        },
+        {
+          "store": "J503",
+          "store_name": "J503-JUMBO MAIPU",
+          "total_units": 991.0,
+          "share_pct": 2.6,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 32.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 21.4,
+          "pct_change": -34.8
+        }
+      ],
+      "bottom_movers_stores": [
+        {
+          "store": "J872",
+          "store_name": "J872-JUMBO MAITENCILLO",
+          "total_units": 265.0,
+          "share_pct": 0.7,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 9.2,
+          "post_weeks": 8,
+          "post_avg_per_week": 4.5,
+          "pct_change": -50.9
+        },
+        {
+          "store": "J796",
+          "store_name": "J796-JUMBO ANTOFAGASTA PEDRO A",
+          "total_units": 481.0,
+          "share_pct": 1.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 16.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 8.2,
+          "pct_change": -50.3
+        },
+        {
+          "store": "J919",
+          "store_name": "J919-JUMBO SUPER DOÑA EMA",
+          "total_units": 222.0,
+          "share_pct": 0.6,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 7.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 4.1,
+          "pct_change": -45.4
+        },
+        {
+          "store": "J503",
+          "store_name": "J503-JUMBO MAIPU",
+          "total_units": 991.0,
+          "share_pct": 2.6,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 32.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 21.4,
+          "pct_change": -34.8
+        },
+        {
+          "store": "J508",
+          "store_name": "J508-JUMBO VIÑA DEL MAR",
+          "total_units": 544.0,
+          "share_pct": 1.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 17.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 12.2,
+          "pct_change": -31.3
+        }
+      ]
+    },
+    "SANTA ISABEL": {
+      "weekly_series": [
+        {
+          "iso_week": 1,
+          "week_start": "2025-12-29",
+          "units": 379.0
+        },
+        {
+          "iso_week": 2,
+          "week_start": "2026-01-05",
+          "units": 270.0
+        },
+        {
+          "iso_week": 3,
+          "week_start": "2026-01-12",
+          "units": 181.0
+        },
+        {
+          "iso_week": 4,
+          "week_start": "2026-01-19",
+          "units": 215.0
+        },
+        {
+          "iso_week": 5,
+          "week_start": "2026-01-26",
+          "units": 206.0
+        },
+        {
+          "iso_week": 6,
+          "week_start": "2026-02-02",
+          "units": 249.0
+        },
+        {
+          "iso_week": 7,
+          "week_start": "2026-02-09",
+          "units": 249.0
+        },
+        {
+          "iso_week": 8,
+          "week_start": "2026-02-16",
+          "units": 275.0
+        },
+        {
+          "iso_week": 9,
+          "week_start": "2026-02-23",
+          "units": 263.0
+        },
+        {
+          "iso_week": 10,
+          "week_start": "2026-03-02",
+          "units": 267.0
+        },
+        {
+          "iso_week": 11,
+          "week_start": "2026-03-09",
+          "units": 305.0
+        },
+        {
+          "iso_week": 12,
+          "week_start": "2026-03-16",
+          "units": 279.0
+        },
+        {
+          "iso_week": 13,
+          "week_start": "2026-03-23",
+          "units": 209.0
+        },
+        {
+          "iso_week": 14,
+          "week_start": "2026-03-30",
+          "units": 270.0
+        },
+        {
+          "iso_week": 15,
+          "week_start": "2026-04-06",
+          "units": 226.0
+        },
+        {
+          "iso_week": 16,
+          "week_start": "2026-04-13",
+          "units": 265.0
+        },
+        {
+          "iso_week": 17,
+          "week_start": "2026-04-20",
+          "units": 283.0
+        },
+        {
+          "iso_week": 18,
+          "week_start": "2026-04-27",
+          "units": 274.0
+        },
+        {
+          "iso_week": 19,
+          "week_start": "2026-05-04",
+          "units": 362.0
+        },
+        {
+          "iso_week": 20,
+          "week_start": "2026-05-11",
+          "units": 287.0
+        },
+        {
+          "iso_week": 21,
+          "week_start": "2026-05-18",
+          "units": 303.0
+        },
+        {
+          "iso_week": 22,
+          "week_start": "2026-05-25",
+          "units": 248.0
+        },
+        {
+          "iso_week": 23,
+          "week_start": "2026-06-01",
+          "units": 297.0
+        },
+        {
+          "iso_week": 24,
+          "week_start": "2026-06-08",
+          "units": 315.0
+        },
+        {
+          "iso_week": 25,
+          "week_start": "2026-06-15",
+          "units": 312.0
+        },
+        {
+          "iso_week": 26,
+          "week_start": "2026-06-22",
+          "units": 270.0
+        },
+        {
+          "iso_week": 27,
+          "week_start": "2026-06-29",
+          "units": 314.0
+        },
+        {
+          "iso_week": 28,
+          "week_start": "2026-07-06",
+          "units": 324.0
+        },
+        {
+          "iso_week": 29,
+          "week_start": "2026-07-13",
+          "units": 335.0
+        },
+        {
+          "iso_week": 30,
+          "week_start": "2026-07-20",
+          "units": 250.0
+        },
+        {
+          "iso_week": 31,
+          "week_start": "2026-07-27",
+          "units": 279.0
+        },
+        {
+          "iso_week": 32,
+          "week_start": "2026-08-03",
+          "units": 399.0
+        },
+        {
+          "iso_week": 33,
+          "week_start": "2026-08-10",
+          "units": 285.0
+        }
+      ],
+      "total_units_2026": 9244.9,
+      "pre_post_takeover": {
+        "pre_weeks": 25,
+        "pre_avg_per_week": 271.6,
+        "post_weeks": 8,
+        "post_avg_per_week": 307.0,
+        "pct_change": 13.1
+      },
+      "sku_count": 3,
+      "store_count": 196,
+      "top_skus": [
+        {
+          "sku": 1843207,
+          "desc": "MERENGUITOS BESHOLATE LIGHT 55 GR",
+          "total_units": 9125.9,
+          "share_pct": 98.7,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 267.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 305.1,
+          "pct_change": 14.1
+        },
+        {
+          "sku": 1702065,
+          "desc": "MERENGUITOS BESHOS S/AZUC DULCE LECH 45G",
+          "total_units": 106.0,
+          "share_pct": 1.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 4.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 0.9,
+          "pct_change": -77.9
+        },
+        {
+          "sku": 2033573,
+          "desc": "MERENGUITOS LIGHT LUCUMA BESHOS 45GR",
+          "total_units": 13.0,
+          "share_pct": 0.1,
+          "pre_weeks": 22,
+          "pre_avg_per_week": 0.2,
+          "post_weeks": 3,
+          "post_avg_per_week": 2.7,
+          "pct_change": 1073.3
+        }
+      ],
+      "bottom_movers_skus": [
+        {
+          "sku": 1702065,
+          "desc": "MERENGUITOS BESHOS S/AZUC DULCE LECH 45G",
+          "total_units": 106.0,
+          "share_pct": 1.1,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 4.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 0.9,
+          "pct_change": -77.9
+        },
+        {
+          "sku": 1843207,
+          "desc": "MERENGUITOS BESHOLATE LIGHT 55 GR",
+          "total_units": 9125.9,
+          "share_pct": 98.7,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 267.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 305.1,
+          "pct_change": 14.1
+        },
+        {
+          "sku": 2033573,
+          "desc": "MERENGUITOS LIGHT LUCUMA BESHOS 45GR",
+          "total_units": 13.0,
+          "share_pct": 0.1,
+          "pre_weeks": 22,
+          "pre_avg_per_week": 0.2,
+          "post_weeks": 3,
+          "post_avg_per_week": 2.7,
+          "pct_change": 1073.3
+        }
+      ],
+      "top_stores": [
+        {
+          "store": "N612",
+          "store_name": "N612 - SANTIAGO GRAJALES",
+          "total_units": 240.0,
+          "share_pct": 2.6,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 7.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 6.9,
+          "pct_change": -7.1
+        },
+        {
+          "store": "N658",
+          "store_name": "N658 - COQUIMBO SINDEMPART",
+          "total_units": 143.0,
+          "share_pct": 1.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 5.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.4,
+          "pct_change": -52.1
+        },
+        {
+          "store": "N848",
+          "store_name": "N848 - QUILLOTA NERVI",
+          "total_units": 140.0,
+          "share_pct": 1.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 4.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.1,
+          "pct_change": -56.8
+        },
+        {
+          "store": "N778",
+          "store_name": "N778 - CONCEPCIÓN SAN PEDRO D",
+          "total_units": 137.0,
+          "share_pct": 1.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 4.5,
+          "post_weeks": 8,
+          "post_avg_per_week": 3.0,
+          "pct_change": -33.6
+        },
+        {
+          "store": "N543",
+          "store_name": "N543 - QUILPUÉ CLAUDIO VICUÑ",
+          "total_units": 134.0,
+          "share_pct": 1.4,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 3.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 6.5,
+          "pct_change": 98.2
+        },
+        {
+          "store": "N771",
+          "store_name": "N771 - SANTIAGO HUÉRFANOS",
+          "total_units": 131.0,
+          "share_pct": 1.4,
+          "pre_weeks": 24,
+          "pre_avg_per_week": 3.5,
+          "post_weeks": 8,
+          "post_avg_per_week": 5.9,
+          "pct_change": 67.9
+        },
+        {
+          "store": "N876",
+          "store_name": "N876 - OLMUE",
+          "total_units": 123.0,
+          "share_pct": 1.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 3.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 3.5,
+          "pct_change": -7.9
+        },
+        {
+          "store": "N608",
+          "store_name": "N608 - SANTIAGO SAN DIEGO",
+          "total_units": 118.0,
+          "share_pct": 1.3,
+          "pre_weeks": 24,
+          "pre_avg_per_week": 3.8,
+          "post_weeks": 8,
+          "post_avg_per_week": 3.2,
+          "pct_change": -15.2
+        }
+      ],
+      "bottom_movers_stores": [
+        {
+          "store": "N911",
+          "store_name": "N911 - VALPARAÍSO BARRIO INGL",
+          "total_units": 47.0,
+          "share_pct": 0.5,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 1.9,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "store": "N700",
+          "store_name": "N700 - P,A, CERDA CARLOS VALDO",
+          "total_units": 24.0,
+          "share_pct": 0.3,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 1.0,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "store": "N829",
+          "store_name": "N829 - RANCAGUA AV, EL SOL",
+          "total_units": 16.0,
+          "share_pct": 0.2,
+          "pre_weeks": 25,
+          "pre_avg_per_week": 0.6,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "store": "N818",
+          "store_name": "N818 - CURACAVÍ PLAYA TRES",
+          "total_units": 8.0,
+          "share_pct": 0.1,
+          "pre_weeks": 24,
+          "pre_avg_per_week": 0.3,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "store": "N835",
+          "store_name": "N835 - CHIGUAYANTE MANUEL RODR",
+          "total_units": 8.0,
+          "share_pct": 0.1,
+          "pre_weeks": 24,
+          "pre_avg_per_week": 0.3,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        }
+      ]
+    },
+    "SMU": {
+      "weekly_series": [
+        {
+          "iso_week": 19,
+          "week_start": "2026-05-04",
+          "units": 46.0
+        },
+        {
+          "iso_week": 20,
+          "week_start": "2026-05-11",
+          "units": 30.0
+        },
+        {
+          "iso_week": 21,
+          "week_start": "2026-05-18",
+          "units": 57.0
+        },
+        {
+          "iso_week": 22,
+          "week_start": "2026-05-25",
+          "units": 66.0
+        },
+        {
+          "iso_week": 23,
+          "week_start": "2026-06-01",
+          "units": 59.0
+        },
+        {
+          "iso_week": 24,
+          "week_start": "2026-06-08",
+          "units": 61.0
+        },
+        {
+          "iso_week": 25,
+          "week_start": "2026-06-15",
+          "units": 55.0
+        },
+        {
+          "iso_week": 26,
+          "week_start": "2026-06-22",
+          "units": 61.0
+        },
+        {
+          "iso_week": 27,
+          "week_start": "2026-06-29",
+          "units": 55.0
+        },
+        {
+          "iso_week": 28,
+          "week_start": "2026-07-06",
+          "units": 60.0
+        },
+        {
+          "iso_week": 29,
+          "week_start": "2026-07-13",
+          "units": 11.0
+        },
+        {
+          "iso_week": 30,
+          "week_start": "2026-07-20",
+          "units": 43.0
+        },
+        {
+          "iso_week": 31,
+          "week_start": "2026-07-27",
+          "units": 40.0
+        },
+        {
+          "iso_week": 32,
+          "week_start": "2026-08-03",
+          "units": 47.0
+        },
+        {
+          "iso_week": 33,
+          "week_start": "2026-08-10",
+          "units": 37.0
+        }
+      ],
+      "total_units_2026": 728.0,
+      "pre_post_takeover": {
+        "pre_weeks": 7,
+        "pre_avg_per_week": 53.4,
+        "post_weeks": 8,
+        "post_avg_per_week": 44.2,
+        "pct_change": -17.2
+      },
+      "sku_count": 3,
+      "store_count": 48,
+      "top_skus": [
+        {
+          "sku": 656497003,
+          "desc": "MERENGUITOS S/AZ BESHOS 45G, ORIGINAL",
+          "total_units": 462.0,
+          "share_pct": 63.5,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 32.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 29.2,
+          "pct_change": -10.2
+        },
+        {
+          "sku": 656497002,
+          "desc": "MERENGUITOS S/AZ BESHOS 45G, VAINILLA",
+          "total_units": 217.0,
+          "share_pct": 29.8,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 16.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 12.4,
+          "pct_change": -26.6
+        },
+        {
+          "sku": 656497001,
+          "desc": "MERENGUITOS S/AZ BESHOS 45G, DULCE LECHE",
+          "total_units": 49.0,
+          "share_pct": 6.7,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 4.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.6,
+          "pct_change": -34.4
+        }
+      ],
+      "bottom_movers_skus": [
+        {
+          "sku": 656497001,
+          "desc": "MERENGUITOS S/AZ BESHOS 45G, DULCE LECHE",
+          "total_units": 49.0,
+          "share_pct": 6.7,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 4.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.6,
+          "pct_change": -34.4
+        },
+        {
+          "sku": 656497002,
+          "desc": "MERENGUITOS S/AZ BESHOS 45G, VAINILLA",
+          "total_units": 217.0,
+          "share_pct": 29.8,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 16.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 12.4,
+          "pct_change": -26.6
+        },
+        {
+          "sku": 656497003,
+          "desc": "MERENGUITOS S/AZ BESHOS 45G, ORIGINAL",
+          "total_units": 462.0,
+          "share_pct": 63.5,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 32.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 29.2,
+          "pct_change": -10.2
+        }
+      ],
+      "top_stores": [
+        {
+          "store": 581,
+          "store_name": "UNI MIRADOR LA FLORIDA",
+          "total_units": 44.0,
+          "share_pct": 6.0,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 2.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 3.8,
+          "pct_change": 87.5
+        },
+        {
+          "store": 408,
+          "store_name": "UNI RUTA 66 SANTO DOMINGO",
+          "total_units": 42.0,
+          "share_pct": 5.8,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 3.6,
+          "post_weeks": 5,
+          "post_avg_per_week": 3.4,
+          "pct_change": -4.8
+        },
+        {
+          "store": 18,
+          "store_name": "UNI OHIGGINS EL SALVADOR",
+          "total_units": 35.0,
+          "share_pct": 4.8,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 3.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 1.6,
+          "pct_change": -48.3
+        },
+        {
+          "store": 362,
+          "store_name": "UNI LAS TRANQUERAS VITACURA",
+          "total_units": 32.0,
+          "share_pct": 4.4,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 3.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 1.2,
+          "pct_change": -60.2
+        },
+        {
+          "store": 86,
+          "store_name": "UNI BILBAO IQUIQUE",
+          "total_units": 32.0,
+          "share_pct": 4.4,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 2.6,
+          "post_weeks": 7,
+          "post_avg_per_week": 2.0,
+          "pct_change": -22.2
+        },
+        {
+          "store": 520,
+          "store_name": "UNI AV ESPAÃA CURICO",
+          "total_units": 27.0,
+          "share_pct": 3.7,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 2.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 1.4,
+          "pct_change": -39.8
+        },
+        {
+          "store": 897,
+          "store_name": "UNI BRISAS NORTE COLINA",
+          "total_units": 26.0,
+          "share_pct": 3.6,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 3.0,
+          "post_weeks": 5,
+          "post_avg_per_week": 1.0,
+          "pct_change": -66.7
+        },
+        {
+          "store": 717,
+          "store_name": "UNI J. DEL MAR VIÃA DEL MAR",
+          "total_units": 25.0,
+          "share_pct": 3.4,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 1.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.1,
+          "pct_change": 85.9
+        }
+      ],
+      "bottom_movers_stores": [
+        {
+          "store": 406,
+          "store_name": "UNI CON CON MONTEMAR",
+          "total_units": 14.0,
+          "share_pct": 1.9,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 2.0,
+          "post_weeks": 8,
+          "post_avg_per_week": null,
+          "pct_change": -100.0
+        },
+        {
+          "store": 224,
+          "store_name": "UNI AV LAS CONDES PA",
+          "total_units": 16.0,
+          "share_pct": 2.2,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 2.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 0.2,
+          "pct_change": -87.5
+        },
+        {
+          "store": 375,
+          "store_name": "UNI ARAUCO VALDIVIA",
+          "total_units": 8.0,
+          "share_pct": 1.1,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 1.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 0.1,
+          "pct_change": -87.5
+        },
+        {
+          "store": 602,
+          "store_name": "UNI L SAN ANDRES CONCEPCION",
+          "total_units": 11.0,
+          "share_pct": 1.5,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 1.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 0.2,
+          "pct_change": -80.6
+        },
+        {
+          "store": 37,
+          "store_name": "UNI SUBERCASEAUX PIRQUE",
+          "total_units": 24.0,
+          "share_pct": 3.3,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 3.0,
+          "post_weeks": 4,
+          "post_avg_per_week": 0.8,
+          "pct_change": -75.0
+        }
+      ]
+    },
+    "TOTTUS": {
+      "weekly_series": [
+        {
+          "iso_week": 19,
+          "week_start": "2026-05-04",
+          "units": 132.0
+        },
+        {
+          "iso_week": 20,
+          "week_start": "2026-05-11",
+          "units": 115.0
+        },
+        {
+          "iso_week": 21,
+          "week_start": "2026-05-18",
+          "units": 143.0
+        },
+        {
+          "iso_week": 22,
+          "week_start": "2026-05-25",
+          "units": 144.0
+        },
+        {
+          "iso_week": 23,
+          "week_start": "2026-06-01",
+          "units": 153.0
+        },
+        {
+          "iso_week": 24,
+          "week_start": "2026-06-08",
+          "units": 152.0
+        },
+        {
+          "iso_week": 25,
+          "week_start": "2026-06-15",
+          "units": 158.0
+        },
+        {
+          "iso_week": 26,
+          "week_start": "2026-06-22",
+          "units": 123.0
+        },
+        {
+          "iso_week": 27,
+          "week_start": "2026-06-29",
+          "units": 138.0
+        },
+        {
+          "iso_week": 28,
+          "week_start": "2026-07-06",
+          "units": 139.0
+        },
+        {
+          "iso_week": 29,
+          "week_start": "2026-07-13",
+          "units": 151.0
+        },
+        {
+          "iso_week": 30,
+          "week_start": "2026-07-20",
+          "units": 124.0
+        },
+        {
+          "iso_week": 31,
+          "week_start": "2026-07-27",
+          "units": 131.0
+        },
+        {
+          "iso_week": 32,
+          "week_start": "2026-08-03",
+          "units": 151.0
+        },
+        {
+          "iso_week": 33,
+          "week_start": "2026-08-10",
+          "units": 139.0
+        }
+      ],
+      "total_units_2026": 2093.0,
+      "pre_post_takeover": {
+        "pre_weeks": 7,
+        "pre_avg_per_week": 142.4,
+        "post_weeks": 8,
+        "post_avg_per_week": 137.0,
+        "pct_change": -3.8
+      },
+      "sku_count": 5,
+      "store_count": 48,
+      "top_skus": [
+        {
+          "sku": 20337621,
+          "desc": "MERENGUITOS LIGHT DULCE DE LECHE",
+          "total_units": 775.0,
+          "share_pct": 37.0,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 57.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 46.5,
+          "pct_change": -19.2
+        },
+        {
+          "sku": 20337623,
+          "desc": "MERENGUITOS LIGHT VAINILLA SUIZA",
+          "total_units": 686.0,
+          "share_pct": 32.8,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 43.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 47.5,
+          "pct_change": 8.7
+        },
+        {
+          "sku": 20337624,
+          "desc": "MERENGUITOS LIGHT CARAMELO",
+          "total_units": 621.0,
+          "share_pct": 29.7,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 40.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 42.2,
+          "pct_change": 4.5
+        },
+        {
+          "sku": 21256445,
+          "desc": "MERENGUITOS LIGHT DULCE DE LECHE DESC",
+          "total_units": 9.0,
+          "share_pct": 0.4,
+          "pre_weeks": 2,
+          "pre_avg_per_week": 2.5,
+          "post_weeks": 2,
+          "post_avg_per_week": 2.0,
+          "pct_change": -20.0
+        },
+        {
+          "sku": 80010337,
+          "desc": "DESC MERENGUITOS LIGHT CARAMELO",
+          "total_units": 2.0,
+          "share_pct": 0.1,
+          "pre_weeks": 0,
+          "pre_avg_per_week": null,
+          "post_weeks": 1,
+          "post_avg_per_week": 2.0,
+          "pct_change": null
+        }
+      ],
+      "bottom_movers_skus": [
+        {
+          "sku": 20337621,
+          "desc": "MERENGUITOS LIGHT DULCE DE LECHE",
+          "total_units": 775.0,
+          "share_pct": 37.0,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 57.6,
+          "post_weeks": 8,
+          "post_avg_per_week": 46.5,
+          "pct_change": -19.2
+        },
+        {
+          "sku": 20337624,
+          "desc": "MERENGUITOS LIGHT CARAMELO",
+          "total_units": 621.0,
+          "share_pct": 29.7,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 40.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 42.2,
+          "pct_change": 4.5
+        },
+        {
+          "sku": 20337623,
+          "desc": "MERENGUITOS LIGHT VAINILLA SUIZA",
+          "total_units": 686.0,
+          "share_pct": 32.8,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 43.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 47.5,
+          "pct_change": 8.7
+        }
+      ],
+      "top_stores": [
+        {
+          "store": 153,
+          "store_name": "Kennedy II",
+          "total_units": 173.0,
+          "share_pct": 8.3,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 14.3,
+          "post_weeks": 8,
+          "post_avg_per_week": 9.1,
+          "pct_change": -36.1
+        },
+        {
+          "store": 131,
+          "store_name": "Piedra Roja",
+          "total_units": 128.0,
+          "share_pct": 6.1,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 10.1,
+          "post_weeks": 8,
+          "post_avg_per_week": 7.1,
+          "pct_change": -29.8
+        },
+        {
+          "store": 148,
+          "store_name": "APP Tottus",
+          "total_units": 126.0,
+          "share_pct": 6.0,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 7.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 9.2,
+          "pct_change": 24.5
+        },
+        {
+          "store": 104,
+          "store_name": "Nataniel",
+          "total_units": 84.0,
+          "share_pct": 4.0,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 4.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 6.4,
+          "pct_change": 35.2
+        },
+        {
+          "store": 134,
+          "store_name": "Quilin",
+          "total_units": 83.0,
+          "share_pct": 4.0,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 4.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 6.5,
+          "pct_change": 46.8
+        },
+        {
+          "store": 133,
+          "store_name": "Factoria",
+          "total_units": 74.0,
+          "share_pct": 3.5,
+          "pre_weeks": 6,
+          "pre_avg_per_week": 4.7,
+          "post_weeks": 8,
+          "post_avg_per_week": 5.8,
+          "pct_change": 23.2
+        },
+        {
+          "store": 125,
+          "store_name": "Chamisero",
+          "total_units": 67.0,
+          "share_pct": 3.2,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 5.3,
+          "post_weeks": 7,
+          "post_avg_per_week": 4.3,
+          "pct_change": -18.9
+        },
+        {
+          "store": 301,
+          "store_name": "Buin",
+          "total_units": 64.0,
+          "share_pct": 3.1,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 3.9,
+          "post_weeks": 8,
+          "post_avg_per_week": 4.6,
+          "pct_change": 19.9
+        }
+      ],
+      "bottom_movers_stores": [
+        {
+          "store": 117,
+          "store_name": "Mall Plaza Tobalaba",
+          "total_units": 16.0,
+          "share_pct": 0.8,
+          "pre_weeks": 4,
+          "pre_avg_per_week": 3.0,
+          "post_weeks": 4,
+          "post_avg_per_week": 1.0,
+          "pct_change": -66.7
+        },
+        {
+          "store": 512,
+          "store_name": "MP La Serena",
+          "total_units": 35.0,
+          "share_pct": 1.7,
+          "pre_weeks": 6,
+          "pre_avg_per_week": 3.5,
+          "post_weeks": 8,
+          "post_avg_per_week": 1.8,
+          "pct_change": -50.0
+        },
+        {
+          "store": 124,
+          "store_name": "Walker Martinez",
+          "total_units": 49.0,
+          "share_pct": 2.3,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 4.4,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.2,
+          "pct_change": -49.2
+        },
+        {
+          "store": 302,
+          "store_name": "Rengo",
+          "total_units": 61.0,
+          "share_pct": 2.9,
+          "pre_weeks": 7,
+          "pre_avg_per_week": 5.7,
+          "post_weeks": 7,
+          "post_avg_per_week": 3.0,
+          "pct_change": -47.5
+        },
+        {
+          "store": 126,
+          "store_name": "Vivaceta",
+          "total_units": 42.0,
+          "share_pct": 2.0,
+          "pre_weeks": 6,
+          "pre_avg_per_week": 4.0,
+          "post_weeks": 8,
+          "post_avg_per_week": 2.2,
+          "pct_change": -43.8
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "document_type": "roadmap_y_analisis_de_desarrollo",
+  "project": "RT_trazabilidad_retail",
+  "version": 2,
+  "generated_at": "2026-08-27",
+  "authority": "PLAN, NO ESTADO. Este documento dice hacia donde vamos y por que -- no lo que es cierto hoy (eso es 02_state.json) ni lo que se decidio (03_ledger.json). Se revisa completo cada cierto tiempo, no se apendiza en cada sesion. Si un horizonte se ejecuta, su resultado se registra en 03_ledger.json y su estado en 02_state.json, y aqui solo se marca como completado.",
+  "origen": "Sesion 32 (v1) y sesion 33 (v2). El usuario pidio un analisis profundo tras observar dos sintomas: (1) el 'cementerio' de backups y de versiones de script, (2) que la memoria funciona como BIBLIOTECA (responde cuando se le pregunta) pero no como ENTRENADOR. Cita: 'una cosa es memoria de biblioteca, y otro una direccion constante de entrenador hacia mi persona. Quiero orden y potencial, velocidad, agilidad.'",
+
+  "correccion_v2_importante": {
+    "que_cambio": "En v1, H1 asumia que el trabajo central era el 'ciclo semanal de MINUTA'. El usuario corrigio: 'minuta es una derivada de todo lo que se puede desarrollar... mi trabajo es analista comercial o de datos'. MINUTA es UNA instancia de un patron mas amplio: el ENCARGO DE ANALISIS. H1 y H2 se reescribieron completos en v2.",
+    "que_se_descubrio_al_investigar": "El usuario ya habia inventado el patron correcto DOS veces en GitHub (381-bas/RT) y lo abandono: (a) projects/hoffmann/ con subcarpetas contracts/ y docs/ -- estructura por cliente; (b) 6 issues que son la escalera real de un encargo (CALLAQUI: iteracion superficial -> analisis base -> informe preliminar -> ajustes -> informe presentable); (c) una rama feature/callaqui-jumbo-rr-base. Se abandono porque el trabajo diario ocurre en C:\\Users\\basti\\Desktop\\RT, que NO es el repositorio -- no hay puente entre donde se trabaja y donde se registra."
+  },
+
+  "los_tres_flujos_recurrentes_reales": {
+    "_nota": "Descubierto en sesion 33 escaneando la carpeta. No es un solo flujo semanal, son tres cadencias distintas que comparten el mismo patron de ciclo de vida de archivos.",
+    "F1_minuta_semanal": {
+      "cadencia": "semanal",
+      "alcance": "todos los clientes a la vez",
+      "ubicacion": "02_MINUTAS_CLIENTES.xlsm (motor) -> 02_MINUTAS_CLIENTES_PLANTILLA.xlsm (entrega) + memoria_claude/scripts/",
+      "estado": "el unico de los tres que esta automatizado y documentado hoy"
+    },
+    "F2_informe_de_rendimiento_por_cliente": {
+      "cadencia": "a pedido, por encargo",
+      "alcance": "un cliente a la vez",
+      "ubicacion": "CLIENTE_GG/ (BESHOS al nivel raiz, TREBOL en subcarpeta -- convencion ya inconsistente)",
+      "ciclo_de_vida_observado_en_BESHOS": "ANALISIS_BESHOS.xlsx (7.3MB, FUENTE) -> extract_full.py + analisis_beshos_retail.json + build_client_report.py + resumen_retail_chart.html (TRABAJO) -> 'BESHOS - Resumen Retail (Cliente).xlsx' (19KB, ENTREGA). La entrega es el 0.3% del peso total: todo lo demas es maquinaria.",
+      "senal_del_propio_usuario": "En TREBOL ya distingue a mano con sufijos: 'LOCALES TREBOL 2026.xlsx' vs '_INTERNO.xlsx' vs '_BACKUP_20260827.xlsx'. El instinto de separar limpio/interno ya existe, le falta estructura."
+    },
+    "F3_centro_de_costo_mensual": {
+      "cadencia": "mensual",
+      "alcance": "toda la empresa",
+      "ubicacion": "CC/DATOS CC <MES>/ -- enero a julio 2026",
+      "ciclo_de_vida_observado": "COSTOS EMPRESA <MES>.xlsx (~15MB, FUENTE) -> 00_CENTRO_COSTO_<MES>.xlsx (~16MB, TRABAJO) con variantes ' DATOS', '_REVISADO', ' - CASO Y CIA'. En MAYO quedaron modelo_centro_costo_memoria.json y resumen_dump.txt; en JUNIO, AUDITORIA_CENTRO_COSTO_JUNIO.txt -- archivos de trabajo generados con Claude que quedaron sueltos, exactamente el sintoma que el usuario describio.",
+      "estado": "NO documentado en la memoria hasta sesion 33. Es un flujo recurrente completo que el sistema no sabia que existia."
+    }
+  },
+
+  "diagnostico_que_funciona": [
+    "El modelo kernel/state/ledger/bitacora (adoptado de KERNEL BASE FINAL de STOCK_ZERO en sesion 30) SI funciona y ya se probo en la practica: en sesion 32, al necesitar saber cual script era el vigente, la respuesta estaba en 02_state.json en un solo lugar, sin releer historia. La distincion ACTIVE/SUPERSEDED del ledger evito reusar decisiones muertas.",
+    "CLAUDE.md en la raiz apuntando a memoria_claude/AGENT.md funciona: se carga automatico en cada sesion nueva de Claude Code sin que el usuario tenga que pegar contexto.",
+    "La disciplina de validar leyendo el ARCHIVO COMPLETO (no una muestra) demostro su valor concreto: en sesion 32 detecto 2 bugs reales que una validacion superficial habria dejado pasar a produccion.",
+    "El patron projects/<cliente>/ con contracts/ y docs/ que el usuario ya creo en GitHub para hoffmann ES la estructura correcta -- no hay que inventar nada, hay que retomarla y extenderla.",
+    "Las issues de GitHub como escalera de un encargo (CALLAQUI #2 a #6) capturan el ciclo de vida real de un informe mejor que cualquier documento: iteracion superficial, analisis base, informe preliminar, ajustes, presentable."
+  ],
+
+  "diagnostico_brechas": {
+    "B1_sin_estructura_de_encargo": {
+      "hallazgo": "No existe una estructura estandar para 'encargo de analisis para cliente X'. Cada uno se arma a mano y termina distinto: BESHOS quedo suelto en la raiz de CLIENTE_GG, TREBOL en subcarpeta, hoffmann solo en GitHub, CALLAQUI solo como issues. Los archivos de trabajo (JSON intermedios, scripts de extraccion, HTML de exploracion) se mezclan con la entrega final en el mismo nivel.",
+      "costo_real": "Al terminar un encargo hay que limpiar a mano y decidir que se guarda; no queda claro cual archivo es el presentable; el proximo encargo no hereda nada del anterior.",
+      "severidad": "ALTA -- es el pedido literal del usuario: 'una ruta de archivos limpios y otro donde se ejecute esos sub archivos'."
+    },
+    "B2_git_desconectado_del_trabajo_real": {
+      "hallazgo": "El repositorio 381-bas/RT existe, es publico, tiene 7 commits, 2 ramas, 6 issues y una estructura projects/hoffmann bien pensada -- pero la carpeta local C:\\Users\\basti\\Desktop\\RT NO es un repositorio git. Son dos mundos sin puente. Ultimo commit hace 3 semanas.",
+      "costo_real": "Consecuencia visible: memoria_claude/scripts/ tiene build_plantilla_v7 hasta v14 (8 copias del mismo archivo) porque no hay versionado real. La estructura buena vive en GitHub y el trabajo real vive fuera de ella.",
+      "severidad": "ALTA",
+      "principio_clave_a_ensenar": "El repo NO debe contener los datos. Los .xlsx/.xlsm de RT pesan hasta 16MB cada uno y hay cientos. El propio repo del usuario ya lo hace bien sin darse cuenta: projects/hoffmann solo tiene .md (contracts, docs, README), cero datos. La regla es: GIT GUARDA EL RAZONAMIENTO Y LAS HERRAMIENTAS (scripts, contratos, planes, memoria, configuracion), NO LOS DATOS NI LAS ENTREGAS."
+    },
+    "B3_claude_sin_configurar": {
+      "hallazgo": "La carpeta .claude/ de RT contiene UN solo archivo (scheduled_tasks.lock). No hay settings.json, ni skills/, ni commands/, ni hooks, ni agents/.",
+      "costo_real": "Cada sesion se re-explica el procedimiento; cada operacion pide permiso de nuevo; el conocimiento de COMO se hace un encargo vive en la cabeza de Claude, no en una capacidad reutilizable e invocable.",
+      "severidad": "ALTA -- es la palanca que convierte los patrones de B1 en algo ejecutable con un comando."
+    },
+    "B4_memoria_pasiva": {
+      "hallazgo": "Los JSON responden preguntas, pero nadie los lee sin que el usuario inicie la conversacion. No hay mecanismo que se ejecute solo.",
+      "costo_real": "El usuario tuvo que pedir explicitamente cada nueva ruta de optimizacion -- paso en sesiones 30, 31 y 32.",
+      "severidad": "ALTA -- parcialmente atacada en sesion 32 con obligacion_de_entrenador en 01_kernel.json."
+    },
+    "B5_motor_excel_como_cuello_de_botella": {
+      "hallazgo": "02_MINUTAS_CLIENTES.xlsm pesa 36MB con ~74k filas de formulas vivas. Ya provoco crashes reales de Excel. El cambio de formato de IT obligo a construir 9 columnas auxiliares solo para reconstruir una fecha-hora que antes venia lista.",
+      "costo_real": "Cada cambio de los proveedores de datos rompe formulas y consume una sesion completa de diagnostico manual.",
+      "severidad": "MEDIA-ALTA"
+    },
+    "B6_archivo_historico_sin_explotar": {
+      "hallazgo": "HISTORIA/ tiene 625 archivos (581 .xlsx), sin tocar desde 2026-08-04. RR/ tiene 78 mas. CC/ tiene 7 meses de datos mensuales. Es una base de datos historica guardada como archivos sueltos.",
+      "costo_real": "Toda pregunta de tendencia historica es inviable de responder rapido.",
+      "severidad": "BAJA hoy, ALTA como oportunidad"
+    }
+  },
+
+  "horizontes": [
+    {
+      "id": "H1",
+      "nombre": "Estructura estandar de encargo (limpio vs trabajo)",
+      "objetivo": "Que todo encargo de analisis -- sea un informe de rendimiento, un centro de costo mensual, o la minuta semanal -- nazca con la misma estructura, y que al terminar quede obvio cual es el archivo presentable y cual es la maquinaria.",
+      "por_que_primero": "Es el pedido literal del usuario y ataca B1. No requiere git ni configuracion previa: es una convencion de carpetas que se puede adoptar hoy.",
+      "estructura_propuesta": {
+        "ruta": "RT/projects/<CLIENTE>_<ENCARGO>/  -- usando 'projects' para alinear con lo que ya existe en GitHub (projects/hoffmann), no inventar un nombre nuevo",
+        "esqueleto": [
+          "README.md          -- que se pidio, quien lo pidio, cuando, en que estado esta, y cual es el archivo de entrega vigente",
+          "1_fuente/          -- datos crudos recibidos. NO se editan nunca. NO van a git.",
+          "2_trabajo/         -- scripts, JSON intermedios, exploraciones, dumps, HTML de prueba. Los SCRIPTS van a git; los datos intermedios no.",
+          "3_entrega/         -- el archivo limpio a presentar. NO va a git, pero queda nombrado en el README."
+        ],
+        "por_que_numerado": "1/2/3 no es decoracion: es la direccion real del flujo (fuente -> trabajo -> entrega) y hace obvio de un vistazo donde buscar el presentable. La escalera de issues de CALLAQUI (#2 a #6) demuestra que ese ciclo de vida es real, no teorico.",
+        "regla_de_limpieza": "Al cerrar un encargo: 3_entrega/ queda con UN archivo (o los que se presenten), 2_trabajo/ conserva solo los scripts reproducibles y se borran los dumps/JSON intermedios que ya no aportan. El README dice que se borro y por que."
+      },
+      "acciones": [
+        "Definir el esqueleto anterior y aplicarlo primero a un encargo REAL nuevo, no migrar lo viejo de entrada.",
+        "Migrar CLIENTE_GG/BESHOS y CLIENTE_GG/TREBOL a la estructura, como prueba de que funciona con casos ya cerrados.",
+        "Documentar F3 (centro de costo mensual) en la memoria -- hoy es un flujo recurrente completo que el sistema no sabia que existia. Evaluar si le sirve el mismo esqueleto con <MES> en vez de <CLIENTE>.",
+        "NO tocar F1 (minuta semanal) todavia: ya funciona y tiene su propia estructura; se alinea despues, no antes."
+      ],
+      "resultado_esperado": "Al terminar cualquier encargo, el archivo presentable esta en un solo lugar predecible y la maquinaria no lo ensucia."
+    },
+    {
+      "id": "H2",
+      "nombre": "Reconectar el trabajo real con el repositorio que ya existe",
+      "objetivo": "Que la carpeta local sea el repositorio 381-bas/RT, sin subir un solo byte de datos.",
+      "por_que_asi": "No es 'empezar a usar git' -- el usuario ya lo usa y ya diseno bien la estructura (projects/hoffmann, issues por encargo, feature branches). El problema es que el trabajo diario ocurre fuera del repo. Esto es reconectar, no ensenar de cero.",
+      "principio_central": "GIT GUARDA EL RAZONAMIENTO Y LAS HERRAMIENTAS, NO LOS DATOS. Van a git: scripts .py, la memoria .json, CLAUDE.md, .claude/, los README.md de cada encargo, los contratos y planes .md. NO van a git: .xlsx, .xlsm, HISTORIA/, DB_/, CC/DATOS*, 1_fuente/, 3_entrega/. El propio repo del usuario ya cumple esta regla sin haberla nombrado: projects/hoffmann solo tiene .md.",
+      "acciones": [
+        "git init en RT + git remote add origin del repo existente + traer la historia (git fetch, luego reconciliar con lo local).",
+        ".gitignore agresivo desde el PRIMER commit -- si un .xlsm de 36MB entra al historial una vez, queda ahi para siempre aunque se borre despues. Este es el error mas caro y mas facil de cometer.",
+        "Consolidar build_plantilla_v7..v14 en UN build_plantilla.py; la historia de versiones pasa a vivir en git, no en nombres de archivo.",
+        "Retomar la convencion de issues por encargo (como CALLAQUI #2-#6) -- son la escalera del ciclo de vida y ademas dejan registro de lo pedido por el cliente interno.",
+        "Retomar feature branches por encargo (como feature/callaqui-jumbo-rr-base) para trabajo que no deba tocar main hasta estar presentable."
+      ],
+      "advertencia": "Verificar el estado del repo remoto ANTES de conectar: tiene 7 commits y 2 ramas propias. No sobrescribir esa historia; reconciliarla.",
+      "resultado_esperado": "Un solo build_plantilla.py. Historia consultable del por que de cada cambio. El repo publico deja de estar congelado hace 3 semanas."
+    },
+    {
+      "id": "H3",
+      "nombre": "Convertir los patrones en capacidad invocable",
+      "objetivo": "Que abrir un encargo, o cerrarlo, sea un comando y no una conversacion.",
+      "depende_de": "H1 (tiene que existir la estructura antes de poder automatizarla)",
+      "acciones": [
+        "Skill 'encargo' -- procedimiento completo: crear el esqueleto, registrar el encargo en la memoria, y al cerrar, hacer la limpieza y dejar el README con el archivo de entrega nombrado.",
+        "/encargo <CLIENTE> <DESCRIPCION> -- abre un encargo nuevo con su esqueleto y su issue en GitHub.",
+        "/cerrar -- ejecuta la regla de limpieza: mueve lo presentable, borra intermedios que ya no aportan, actualiza README y memoria.",
+        "/semana -- el flujo F1 (minuta), que pasa a ser UN comando mas, no el centro del sistema.",
+        "settings.json con permisos para lo ya rutinario (lectura de xlsm, ejecucion de los scripts propios), sin abrir la mano en escrituras sensibles."
+      ],
+      "resultado_esperado": "Abrir y cerrar un encargo deja de depender de que Claude 'recuerde bien' el procedimiento."
+    },
+    {
+      "id": "H4",
+      "nombre": "De biblioteca a entrenador",
+      "objetivo": "Que el sistema proponga sin que se lo pidan -- la brecha B4.",
+      "acciones": [
+        "YA APLICADO en sesion 32: obligacion_de_entrenador en 01_kernel.json y AGENT.md -- al cierre de cada sesion con trabajo real, nombrar un paso manual automatizable y una capacidad del entorno sin usar.",
+        "Agente agendado semanal: lee 02_state.json y este roadmap y entrega un brief -- que encargo quedo abierto, que cliente falta, que horizonte esta detenido.",
+        "/coach -- la misma revision, bajo demanda.",
+        "Subagente critico que revise el trabajo antes de escribir a produccion. Es el rol que el KERNEL de STOCK_ZERO le asigna a Claude, aplicado aqui sobre si mismo -- habria detectado los 2 bugs de sesion 32 antes, no despues."
+      ]
+    },
+    {
+      "id": "H5",
+      "nombre": "Reducir la deuda del motor Excel",
+      "objetivo": "Bajar la fragilidad estructural de 02_MINUTAS_CLIENTES.xlsm (brecha B5).",
+      "acciones": [
+        "Evaluar mover el parseo de fecha-hora de OSA (hoy 9 columnas auxiliares) a Power Query -- 1 paso declarativo en vez de 9 columnas fragiles.",
+        "Mas ambicioso: que el pipeline Python lea los archivos de descarga crudos y produzca el archivo liviano, dejando el motor .xlsm como visor y no como calculadora. El motor existe porque se construyo ANTES de que existiera la automatizacion."
+      ],
+      "advertencia": "Depende de H2. Es el horizonte de mayor riesgo -- sin git no hay red de seguridad para tocar el motor. No iniciarlo antes."
+    },
+    {
+      "id": "H6",
+      "nombre": "Activar el archivo historico",
+      "objetivo": "Convertir HISTORIA/ (581 xlsx), RR/ y los 7 meses de CC/ en algo consultable (brecha B6).",
+      "acciones": [
+        "Prueba de concepto acotada: consolidar un subconjunto (un cliente, un semestre, o los 7 meses de centro de costo) a formato columnar (parquet) y consultarlo con DuckDB desde Python -- sin servidor, un solo archivo.",
+        "Extender solo si la prueba responde una pregunta de negocio que hoy es imposible."
+      ],
+      "prerequisito": "No iniciar hasta que H1-H4 esten estables. Aplica la regla heredada del KERNEL de STOCK_ZERO: no crear infraestructura hasta demostrar necesidad repetida."
+    }
+  ],
+
+  "orden_recomendado": "H1 (estructura de encargo) -> H2 (reconectar git) -> H3 (capacidad invocable) -> H4 (entrenador) -> H5 (deuda Excel) -> H6 (historico). H1 y H2 se pueden hacer en la misma sesion y se refuerzan: la estructura de H1 define exactamente que va y que no va a git en H2. H3 depende de H1. H5 NO debe iniciarse antes de H2.",
+
+  "no_hacer_ahora": [
+    "MCP de memoria propio -- los JSON + git cubren la necesidad actual; seria infraestructura sin retorno demostrado (mismo criterio que el KERNEL de STOCK_ZERO ya establecio).",
+    "Migrar el negocio a una base de datos -- STOCK_ZERO ya ocupa ese espacio; RT es trazabilidad operativa y encargos de analisis, no debe duplicar esa arquitectura.",
+    "Subir datos a git -- ni siquiera 'temporalmente'. Un .xlsm de 36MB en el historial queda para siempre aunque se borre despues.",
+    "Reescribir el motor Excel desde cero -- H5 propone reducir su rol gradualmente.",
+    "Automatizar la generacion de mensajes al cliente con IA generativa libre -- los textos de PLANTILLA estan calibrados con el equipo (sesion 25: el texto de INMOVILIZADO se cambio por friccion humana real). Ese calibrado es un activo, no un cuello de botella.",
+    "Migrar todos los encargos viejos a la estructura nueva de golpe -- probar con uno nuevo primero, luego 2 cerrados como validacion."
+  ],
+
+  "nota_sobre_el_rol_de_claude_en_RT_vs_STOCK_ZERO": "En el KERNEL de STOCK_ZERO, el modelo de agentes asigna a Claude 'investigacion, critica, hallazgos, alternativas, auditoria_conceptual' y a Codex la implementacion. En RT, Claude Code esta haciendo AMBOS roles. No es una contradiccion a corregir, es una diferencia de contexto: RT es automatizacion de escritorio de un solo operador. Pero SI conviene recuperar el rol de critico separado (ver H4) -- en sesion 32 quedo demostrado que Claude implementando y validando su propio trabajo puede dejar pasar errores en la primera revision."
+}
