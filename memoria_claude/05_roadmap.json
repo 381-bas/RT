@@ -106,7 +106,7 @@
     },
     {
       "id": "H2",
-      "estado": "EJECUTADO PARCIAL (sesion 33): repo local conectado a 381-bas/RT, historia reconciliada, .gitignore agresivo desde el primer commit, build_plantilla consolidado. Pendiente: push al remoto (requiere confirmacion del usuario -- publica contenido en repo publico), retomar issues/branches por encargo.",
+      "estado": "EJECUTADO (sesion 33): repo local conectado a 381-bas/RT, historia reconciliada, .gitignore agresivo desde el primer commit, build_plantilla consolidado, PUSH hecho a main con autorizacion del usuario. Ademas se limpio un encargo abandonado (CALLAQUI_PLAN): rama feature/callaqui-jumbo-rr-base eliminada del remoto (nunca se fusiono a main, no hizo falta reescribir historia) e issues #2-#6 cerradas. Pendiente: retomar issues/branches por encargo para los proximos casos (H3).",
       "nombre": "Reconectar el trabajo real con el repositorio que ya existe",
       "objetivo": "Que la carpeta local sea el repositorio 381-bas/RT, sin subir un solo byte de datos.",
       "por_que_asi": "No es 'empezar a usar git' -- el usuario ya lo usa y ya diseno bien la estructura (projects/hoffmann, issues por encargo, feature branches). El problema es que el trabajo diario ocurre fuera del repo. Esto es reconectar, no ensenar de cero.",

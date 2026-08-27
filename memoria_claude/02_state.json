@@ -6,9 +6,18 @@
   "generated_at": "2026-08-26",
   "authority": "SNAPSHOT VIGENTE. Este documento se SOBREESCRIBE (no se acumula) al cierre de cada sesion relevante -- refleja el estado actual, no el historico. Para historia, ver 04_bitacora_sesiones.json. Para decisiones con fecha y status, ver 03_ledger.json.",
 
-  "overall_status": "Sesion 32: se agregaron BESHOS, BERRYSUR, BIGU, GRANA (MINUTA cargada) y MORETTA (solo OSA+REPORTES, sin MINUTA) via build_plantilla.py. Ahora los 10 clientes conocidos estan activos simultaneamente en PLANTILLA: 372 filas, 0 duplicados, 0 errores. En el camino se encontro y corrigio un bug real de escritura COM (filas corruptas al azar en escrituras grandes) -- ver 01_kernel.json, escritura_COM_de_muchas_filas_ojo.",
+  "overall_status": "Sesion 32: se agregaron BESHOS, BERRYSUR, BIGU, GRANA (MINUTA cargada) y MORETTA (solo OSA+REPORTES, sin MINUTA) via build_plantilla.py. Ahora los 10 clientes conocidos estan activos simultaneamente en PLANTILLA: 372 filas, 0 duplicados, 0 errores. En el camino se encontro y corrigio un bug real de escritura COM (filas corruptas al azar en escrituras grandes) -- ver 01_kernel.json, escritura_COM_de_muchas_filas_ojo. Sesion 33: RT PASO A SER REPOSITORIO GIT, conectado a 381-bas/RT (push hecho a main). Se adopto el patron projects/<CLIENTE>_<ENCARGO>/ para encargos de analisis (H1), validado con BESHOS. Se limpio un encargo abandonado (CALLAQUI_PLAN: rama remota eliminada, issues cerradas) y se encontro/removio una credencial de Supabase expuesta en texto plano (nunca llego a git).",
 
-  "current_focus": "Los 10 clientes conocidos (ALUSWEET, BERRYSUR, BESHOS, BIGU, CORRALES DEL SUR, FROZT, GRANA, MAILEMU MIEL, MORETTA, TNOGAL) estan activos en PLANTILLA. A la espera de que el usuario indique el proximo cliente nuevo o la proxima vuelta de analisis.",
+  "estado_git": {
+    "es_repo": true,
+    "desde": "sesion 33 (2026-08-27)",
+    "remoto": "https://github.com/381-bas/RT (publico)",
+    "rama_principal": "main, sincronizada con origin/main",
+    "principio_vigente": "Git guarda el razonamiento y las herramientas, NUNCA los datos -- ver 01_kernel.json y .gitignore en la raiz de RT.",
+    "que_NO_hacer": "Nunca `git add` un .xlsx/.xlsm ni nada de HISTORIA/, DB_/, CC/, RR/, 1_fuente/, 3_entrega/ -- el .gitignore ya los excluye, pero verificar con `git status`/`git add -A --dry-run` antes de cualquier commit nuevo, tal como se hizo en sesion 33 (asi se detecto la credencial expuesta antes de commitear)."
+  },
+
+  "current_focus": "Los 10 clientes conocidos (ALUSWEET, BERRYSUR, BESHOS, BIGU, CORRALES DEL SUR, FROZT, GRANA, MAILEMU MIEL, MORETTA, TNOGAL) estan activos en PLANTILLA. En paralelo, RT ya tiene estructura de encargo (H1) y git conectado (H2) -- el siguiente encargo de analisis (tipo BESHOS) deberia nacer directo en projects/<CLIENTE>_<ENCARGO>/, no en una carpeta suelta.",
 
   "scripts_vigentes": {
     "carpeta": "C:\\Users\\basti\\Desktop\\RT\\memoria_claude\\scripts\\",
