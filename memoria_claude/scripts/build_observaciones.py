@@ -23,12 +23,17 @@ cuales de esas salas TAMBIEN tienen un indicador operativo activo esta semana (O
 INMOVILIZADO, SEGUIMIENTO, STOCK NEGATIVO) -- responde la pregunta que el usuario dejo
 pendiente en sesion 29 ("esto coincide con la PLANTILLA? los niveles de OSA, de
 INCUMPLIMIENTO?") con datos reales en vez de dejarla como consulta aislada. Requiere que
-PLANTILLA ya este actualizada (correr build_plantilla_v13.py ANTES que este script).
+PLANTILLA ya este actualizada (correr build_plantilla.py ANTES que este script).
+
+NUEVO (sesion 34, refactor de mantenimiento): norm_code/fmt_num, inferir_cadena/
+normalizar (Tabla6), y la apertura segura de Excel via COM se sacaron a rt_common.py
+-- estaban copiados LITERALMENTE de build_plantilla.py, con riesgo real de que un fix
+en un archivo no llegara al otro (ya paso en sesion 28). Sin cambio de comportamiento.
 """
 import datetime
 from collections import defaultdict, Counter
-import win32com.client as win32
-import pythoncom
+
+import rt_common as rc
 
 FILE_PATH = r"C:\Users\basti\Desktop\RT\02_MINUTAS_CLIENTES_PLANTILLA.xlsm"
 
@@ -44,68 +49,26 @@ OBS_HEADERS = ["Cliente", "Fecha", "Categoria", "Observacion", "Prioridad"]
 def log(msg):
     print(msg, flush=True)
 
-def norm_code(x):
-    if isinstance(x, float) and x.is_integer():
-        x = int(x)
-    return str(x).strip()
-
-def fmt_num(x):
-    if isinstance(x, float) and x.is_integer():
-        return str(int(x))
-    return str(x)
+# Compartidas con build_plantilla.py -- ver memoria_claude/scripts/rt_common.py
+norm_code = rc.norm_code
+fmt_num = rc.fmt_num
 
 def main():
-    pythoncom.CoInitialize()
-    app = win32.gencache.EnsureDispatch(win32.DispatchEx('Excel.Application'))
-    app.Visible = False
-    app.DisplayAlerts = False
-    app.AutomationSecurity = 3
-    app.ScreenUpdating = False
-    wb = None
-    try:
+    with rc.abrir_excel_com(FILE_PATH) as (app, wb):
         log("Abriendo workbook liviano (instancia independiente)...")
-        wb = app.Workbooks.Open(FILE_PATH, UpdateLinks=0, ReadOnly=False)
 
         ws_v = wb.Worksheets("VENTAS")
         ws_m = wb.Worksheets("MINUTA")
 
-        # --- Tabla6 (prefijos), igual que en build_plantilla ---
+        # --- Tabla6 (prefijos), igual que en build_plantilla -- ver rt_common.py ---
         lo6 = ws_m.ListObjects("Tabla6")
-        tabla6 = {}
-        for row in lo6.DataBodyRange.Value:
-            cadena, suf1, suf2, obs = row
-            if not cadena:
-                continue
-            prefijos = [p for p in (suf1, suf2) if p]
-            accion = "conservar" if obs and "conservar" in str(obs).lower() else "numerico"
-            tabla6[str(cadena).strip().upper()] = {"prefijos": prefijos, "accion": accion}
+        tabla6 = rc.cargar_tabla6(lo6)
 
         def inferir_cadena(codigo_crudo):
-            s = str(codigo_crudo).strip().upper()
-            for cadena, info in tabla6.items():
-                for p in info["prefijos"]:
-                    if s.startswith(p.upper()):
-                        resto = s[len(p):]
-                        if resto.isdigit() or info["accion"] == "conservar":
-                            return cadena
-            return None
+            return rc.inferir_cadena(codigo_crudo, tabla6)
 
         def normalizar(codigo_crudo, cadena):
-            # sesion 28 fix (mismo hallazgo que en build_plantilla_v11.py): norm_code
-            # PRIMERO, antes de la logica de prefijo, para no perder un ".0" si el
-            # codigo llega como float limpio en vez de texto con prefijo.
-            s = norm_code(codigo_crudo)
-            info = tabla6.get(cadena)
-            if not info:
-                return s
-            if info["accion"] == "conservar":
-                return s
-            for p in info["prefijos"]:
-                if s.upper().startswith(p.upper()):
-                    resto = s[len(p):]
-                    if resto.isdigit():
-                        return norm_code(int(resto))
-            return s
+            return rc.normalizar(codigo_crudo, cadena, tabla6)
 
         # --- Leer VENTAS ---
         hdr_v = ws_v.Range(ws_v.Cells(1, 1), ws_v.Cells(1, ws_v.UsedRange.Columns.Count)).Value[0]
@@ -293,19 +256,22 @@ def main():
         existentes = []
         if last_row_obs > 1:
             existentes = ws_obs.Range(f"A2:E{last_row_obs}").Value
-            if not isinstance(existentes, tuple):
-                existentes = [existentes]
+            # sesion 34: mismo fix que en build_plantilla.py -- si hay 1 sola fila, COM
+            # devuelve una tupla PLANA (una fila, no una tupla-de-tuplas), y envolverla mal
+            # ("[existentes]") la trataria como una fila de 1 sola columna en vez de 5.
+            if not isinstance(existentes, tuple) or (existentes and not isinstance(existentes[0], tuple)):
+                existentes = (existentes,)
 
         # Conservar filas de OTROS clientes, descartar las de este CLIENTE (se reemplazan)
         conservar = [r for r in existentes if r and r[0] and str(r[0]).strip() != CLIENTE]
         nuevas = conservar + filas_obs
         log(f"Filas conservadas de otros clientes: {len(conservar)} | Filas nuevas de {CLIENTE}: {len(filas_obs)} | Total final: {len(nuevas)}")
 
-        # Limpiar y reescribir todo el bloque de datos
+        # Limpiar y reescribir todo el bloque de datos -- fila por fila + verificacion,
+        # ver rt_common.py (mismo patron de seguridad que build_plantilla.py).
         if last_row_obs > 1:
             ws_obs.Range(f"A2:E{last_row_obs}").ClearContents()
-        if nuevas:
-            ws_obs.Range(f"A2:E{1+len(nuevas)}").Value = nuevas
+        rc.escribir_filas_verificado(ws_obs, fila_inicio=2, num_columnas=5, out_rows=nuevas, log=log)
 
         log("Guardando...")
         wb.Save()
@@ -313,17 +279,7 @@ def main():
 
         log(f"OBSERVACIONES UsedRange filas: {ws_obs.UsedRange.Rows.Count}")
         log("PROCESO_OK")
-    finally:
-        try:
-            if wb is not None:
-                wb.Close(SaveChanges=False)
-        except Exception as e:
-            log(f"Aviso cerrando wb: {e}")
-        try:
-            app.Quit()
-        except Exception as e:
-            log(f"Aviso cerrando app: {e}")
-        pythoncom.CoUninitialize()
+    # cierre de Excel a cargo de rc.abrir_excel_com() -- ver rt_common.py.
 
 if __name__ == "__main__":
     main()

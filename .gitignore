@@ -39,6 +39,10 @@ BACKUP_*
 .claude/*.lock
 .claude/scheduled_tasks.lock
 
+# Python
+__pycache__/
+*.pyc
+
 # Basura de SO
 Thumbs.db
 .DS_Store

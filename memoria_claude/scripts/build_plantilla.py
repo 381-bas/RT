@@ -105,11 +105,18 @@ NUEVO v14 (sesion 32, cliente MORETTA -- "genera la PLANTILLA solo con OSA y REP
      que las corridas normales escriben). Eso until ahora colaba filas basura de vuelta en
      cada corrida. Fix: al preservar, exigir que Marca sea texto real, no vacio y que no
      empiece con "#" (filtra "#N/A", "#REF!", etc.).
+
+NUEVO (sesion 34, refactor de mantenimiento): norm_code/fmt_num/es_libro/peso_stock,
+inferir_cadena/normalizar (Tabla6), la apertura segura de Excel via COM, y el patron de
+escritura fila-por-fila-con-verificacion se sacaron a rt_common.py -- estaban copiados
+LITERALMENTE en build_observaciones.py y podian divergir sin que nadie lo notara (ya
+paso una vez, sesion 28). Este archivo ahora los importa; el comportamiento no cambio,
+solo de donde vive el codigo.
 """
 import datetime
 from collections import defaultdict
-import win32com.client as win32
-import pythoncom
+
+import rt_common as rc
 
 FILE_PATH = r"C:\Users\basti\Desktop\RT\02_MINUTAS_CLIENTES_PLANTILLA.xlsm"
 
@@ -171,29 +178,11 @@ def get_peso_cadena(cliente, cadena):
 def log(msg):
     print(msg, flush=True)
 
-def norm_code(x):
-    if isinstance(x, float) and x.is_integer():
-        x = int(x)
-    return str(x).strip()
-
-def fmt_num(x):
-    if isinstance(x, float) and x.is_integer():
-        return str(int(x))
-    return str(x)
-
-def es_libro(texto):
-    return bool(texto) and "LIBRO" in str(texto).upper()
-
-def peso_stock(stock, umbral):
-    """0 a 1: severidad continua segun magnitud de stock. Stock bajo -> peso bajo
-    (probable ruido/desajuste), stock >= umbral -> peso maximo 1.0."""
-    try:
-        s = float(stock)
-    except (TypeError, ValueError):
-        s = 0.0
-    if umbral <= 0:
-        return 1.0
-    return max(0.0, min(1.0, s / umbral))
+# Compartidas con build_observaciones.py -- ver memoria_claude/scripts/rt_common.py
+norm_code = rc.norm_code
+fmt_num = rc.fmt_num
+es_libro = rc.es_libro
+peso_stock = rc.peso_stock
 
 def calcular_riesgo(datos, cliente, cadena):
     """Riesgo (0 a 1) = 0.5*(tipos/max_tipos) + 0.5*(min(focos,6)/6), con OSA e
@@ -235,16 +224,8 @@ def find_header_row_and_cols(ws, needed_names, max_scan_rows=10, max_scan_cols=3
     raise ValueError(f"No se encontro fila de encabezado con: {needed_names}")
 
 def main():
-    pythoncom.CoInitialize()
-    app = win32.gencache.EnsureDispatch(win32.DispatchEx('Excel.Application'))
-    app.Visible = False
-    app.DisplayAlerts = False
-    app.AutomationSecurity = 3
-    app.ScreenUpdating = False
-    wb = None
-    try:
+    with rc.abrir_excel_com(FILE_PATH) as (app, wb):
         log("Abriendo workbook liviano (instancia independiente)...")
-        wb = app.Workbooks.Open(FILE_PATH, UpdateLinks=0, ReadOnly=False)
 
         ws_m = wb.Worksheets("MINUTA")
         ws_p = wb.Worksheets("PLANTILLA")
@@ -254,45 +235,16 @@ def main():
         ws_r = wb.Worksheets("REPORTES")
         ws_o = wb.Worksheets("OSA")
 
-        # --- Tabla6 (prefijos) ---
+        # --- Tabla6 (prefijos) -- ver rt_common.py ---
         lo6 = ws_m.ListObjects("Tabla6")
-        tabla6 = {}
-        for row in lo6.DataBodyRange.Value:
-            cadena, suf1, suf2, obs = row
-            if not cadena:
-                continue
-            prefijos = [p for p in (suf1, suf2) if p]
-            accion = "conservar" if obs and "conservar" in str(obs).lower() else "numerico"
-            tabla6[str(cadena).strip().upper()] = {"prefijos": prefijos, "accion": accion}
+        tabla6 = rc.cargar_tabla6(lo6)
         log(f"Tabla6: {tabla6}")
 
         def inferir_cadena(codigo_crudo):
-            s = str(codigo_crudo).strip().upper()
-            for cadena, info in tabla6.items():
-                for p in info["prefijos"]:
-                    if s.startswith(p.upper()):
-                        resto = s[len(p):]
-                        if resto.isdigit() or info["accion"] == "conservar":
-                            return cadena
-            return None
+            return rc.inferir_cadena(codigo_crudo, tabla6)
 
         def normalizar(codigo_crudo, cadena):
-            # sesion 28 fix: limpiar el float ANTES de convertir a texto (norm_code primero),
-            # si no, un codigo numerico limpio tipo 84.0 (WALMART/TOTTUS/SMU desde MINUTA)
-            # se stringifica a "84.0" y se pierde el ".0" -- rompe el calce con OSA/REPORTES
-            # (que dan "84"), duplicando la sala en 2 grupos distintos.
-            s = norm_code(codigo_crudo)
-            info = tabla6.get(cadena)
-            if not info:
-                return s
-            if info["accion"] == "conservar":
-                return s
-            for p in info["prefijos"]:
-                if s.upper().startswith(p.upper()):
-                    resto = s[len(p):]
-                    if resto.isdigit():
-                        return norm_code(int(resto))
-            return s
+            return rc.normalizar(codigo_crudo, cadena, tabla6)
 
         # --- RUTA_RUTERO (Tabla7) -- sesion 30 (v13): fuente de Local/Gestor/Supervisor ---
         # Universo completo de salas x cliente (no solo las que tienen foco esta semana).
@@ -537,47 +489,10 @@ def main():
         if last_row_p > 1:
             ws_p.Range(f"A2:M{last_row_p}").ClearContents()
 
-        # sesion 32: escribir FILA POR FILA (no un Range.Value multi-fila) -- con ~372 filas
-        # en una sola asignacion, o incluso en lotes de 25-50, aparecian filas corruptas
-        # (#N/A, en blanco, o con el contenido de OTRA fila del mismo cliente duplicado) en
-        # posiciones aleatorias del rango. Confirmado que los datos en Python eran correctos
-        # fila por fila justo antes de escribir -- el problema es de la marshalling COM de
-        # arrays 2D grandes en este entorno. Una asignacion de 1 fila x 13 columnas por vez
-        # es mas lenta pero elimina la ambiguedad del array 2D. Se agrega ademas una
-        # VERIFICACION posterior comparando la fila COMPLETA (no solo Marca, que no detectaba
-        # una fila con el contenido de OTRA fila del mismo cliente) y se re-escribe cualquier
-        # fila que no calce exactamente.
-        if n > 0:
-            for i, fila in enumerate(out_rows):
-                fila_excel = 2 + i
-                ws_p.Range(f"A{fila_excel}:M{fila_excel}").Value = fila
-
-            # --- verificacion + auto-reparacion (compara la fila completa) ---
-            releido = ws_p.Range(f"A2:M{1+n}").Value
-            if not isinstance(releido, tuple) or (releido and not isinstance(releido[0], tuple)):
-                releido = (releido,)
-            def _cmp(x):
-                # Excel guarda un texto numerico (ej. "613") como NUMERO al releerlo -- se
-                # normaliza a texto sin ".0" antes de comparar para no marcar falsos positivos.
-                if x is None:
-                    return None
-                if isinstance(x, float) and x.is_integer():
-                    return str(int(x))
-                return str(x).strip()
-
-            n_reparadas = 0
-            for i, (esperado, actual) in enumerate(zip(out_rows, releido)):
-                # comparar solo las columnas de texto/codigo (C a I: Marca..Observacion),
-                # ignorando Semana/Fecha (formato de tipo puede diferir levemente en la
-                # relectura, ej. datetime con tz) y Riesgo (float, comparacion redondeada).
-                cols_texto_iguales = all(_cmp(actual[j]) == _cmp(esperado[j]) for j in range(2, 9))
-                riesgo_igual = actual[12] is not None and abs(float(actual[12]) - float(esperado[12])) < 0.005
-                if not (cols_texto_iguales and riesgo_igual):
-                    fila_excel = 2 + i
-                    ws_p.Range(f"A{fila_excel}:M{fila_excel}").Value = esperado
-                    n_reparadas += 1
-            if n_reparadas:
-                log(f"PLANTILLA: {n_reparadas} filas llegaron corruptas de la escritura y se repararon individualmente.")
+        # Escritura segura (fila por fila + verificacion/reparacion) -- ver rt_common.py,
+        # escribir_filas_verificado(). Se saco de aca en sesion 34 para que cualquier otro
+        # script (ej. build_observaciones.py) tenga la misma proteccion sin duplicar codigo.
+        rc.escribir_filas_verificado(ws_p, fila_inicio=2, num_columnas=13, out_rows=out_rows, log=log)
         log(f"PLANTILLA: {len(filas_finales)} filas nuevas/actualizadas + {len(filas_preservadas)} preservadas "
             f"= {n} filas totales escritas fila por fila (A2:M{1+n}).")
 
@@ -592,17 +507,8 @@ def main():
             log(str(r))
 
         log("PROCESO_OK")
-    finally:
-        try:
-            if wb is not None:
-                wb.Close(SaveChanges=False)
-        except Exception as e:
-            log(f"Aviso cerrando wb: {e}")
-        try:
-            app.Quit()
-        except Exception as e:
-            log(f"Aviso cerrando app: {e}")
-        pythoncom.CoUninitialize()
+    # cierre de Excel (sin guardar de nuevo, ya se guardo arriba) a cargo de
+    # rc.abrir_excel_com() -- ver rt_common.py.
 
 if __name__ == "__main__":
     main()

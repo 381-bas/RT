@@ -58,6 +58,21 @@
     "implementacion_vigente": "build_plantilla.py."
   },
 
+  "rt_common_py": {
+    "vigente_desde": "sesion 34 (2026-08-28)",
+    "que_es": "memoria_claude/scripts/rt_common.py -- modulo compartido entre build_plantilla.py y build_observaciones.py. Contiene norm_code/fmt_num/es_libro/peso_stock, cargar_tabla6/inferir_cadena/normalizar (Tabla6), el context manager abrir_excel_com() (COM seguro: DispatchEx, AutomationSecurity=3, cierre garantizado), y escribir_filas_verificado() (fila por fila + verificacion/reparacion, ver escritura_COM_de_muchas_filas_ojo).",
+    "por_que": "norm_code/inferir_cadena/normalizar estaban copiadas LITERALMENTE en los 2 scripts -- un fix en uno no llegaba al otro sin que nadie lo notara (ya paso en sesion 28). Cualquier script NUEVO que procese OSA/REPORTES/MINUTA/VENTAS debe importar de aca, no copiar y pegar de nuevo.",
+    "bug_encontrado_al_refactorizar": "Al generalizar la verificacion de escritura para rt_common.py, se perdio la exclusion que build_plantilla.py tenia a mano para su columna de Fecha (un datetime.datetime escrito se relee como pywintypes.datetime CON zona horaria, y comparado como texto nunca calza). Primera corrida post-refactor marco las 372 filas como 'corruptas' -- falso positivo, no error real. Fix: _valores_iguales() ahora compara objetos con atributo .year por (year,month,day) antes de caer a comparacion numerica/texto. Leccion: al DRY-ificar una funcion de comparacion, revisar que TODAS las exclusiones/casos especiales del codigo original se preserven, no solo el camino feliz.",
+    "validado": "build_plantilla.py y build_observaciones.py corridos contra el archivo real tras el refactor -- resultado IDENTICO al ultimo conocido-bueno (372 filas PLANTILLA mismo desglose por cliente, 31 filas OBSERVACIONES de ALUSWEET con el mismo hallazgo de cruce)."
+  },
+
+  "inspect_excel_py": {
+    "vigente_desde": "sesion 34 (2026-08-28)",
+    "que_es": "memoria_claude/scripts/inspect_excel.py -- herramienta de linea de comandos, SOLO LECTURA, para inspeccionar cualquier .xlsx/.xlsm sin escribir un script desechable cada vez (paso muy seguido: inspect_ligero.py, inspect_ligero2.py, debug_plantilla.py, dump_full_plantilla.py... todos reinventaban lo mismo).",
+    "comandos": "sin --hoja lista todas las hojas con filas/columnas; --hoja X muestra headers + filas de muestra; --hoja X --contar COLUMNA cuenta valores distintos; --hoja X --filtro COLUMNA=VALOR filtra filas; --hoja X --tablas lista los ListObjects (unico caso que abre read_only=False, porque openpyxl no expone Tablas en modo solo-lectura).",
+    "probado": "Contra 02_MINUTAS_CLIENTES_PLANTILLA.xlsm real: listar hojas, contar por Marca en PLANTILLA, y filtrar MORETTA -- los 3 dieron el resultado esperado en un solo comando cada uno."
+  },
+
   "hook_pre_commit_seguridad": {
     "vigente_desde": "sesion 33 (2026-08-27)",
     "que_es": "scripts/git-hooks/pre-commit -- hook de git VERSIONADO (vive en el repo, no en .git/hooks/ que nunca se sube). Se activa una vez por maquina con `git config core.hooksPath scripts/git-hooks`; sin ese comando existe pero no corre.",
