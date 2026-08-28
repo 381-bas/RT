@@ -240,7 +240,12 @@ def main():
         # la query siempre venga pre-filtrada. Hallazgo real al migrar: SIN_VISITA trajo 2
         # clientes (PROPAL, BREDEN MASTER) que REPORTES nunca habia mostrado.
         ws_r = wb.Worksheets("SIN_VISITA")
-        ws_o = wb.Worksheets("OSA")
+        # sesion 36: la fuente de OSA paso de la hoja OSA (pivot por fecha, "cualquier dia
+        # tuvo un valor") a OSA_ALERTA -- Power Query nueva contra el motor que ya trae la
+        # logica completa de ALERTA_CRITICA calculada alla (ES_ULTIMO_REGISTRO + Discrepancia
+        # + RECURRENCIA_SEMANA + STOCK_B2B, ver sesion 29). Cada fila de OSA_ALERTA YA es una
+        # alerta real -- no hace falta reconstruir "hubo foco" a partir de columnas de fecha.
+        ws_o = wb.Worksheets("OSA_ALERTA")
 
         # --- Tabla6 (prefijos) -- ver rt_common.py ---
         lo6 = ws_m.ListObjects("Tabla6")
@@ -305,7 +310,7 @@ def main():
         idx1 = {n: i for i, n in enumerate(names1)}
         data1 = lo1.DataBodyRange.Value
 
-        lo3 = ws_o.ListObjects("Tabla3")
+        lo3 = ws_o.ListObjects("OSA_ALERTA")
         names3 = [lo3.ListColumns(i).Name for i in range(1, lo3.ListColumns.Count + 1)]
         idx3 = {n: i for i, n in enumerate(names3)}
         data3 = lo3.DataBodyRange.Value
@@ -378,26 +383,35 @@ def main():
         log(f"SIN_VISITA/CUMPLIMIENTO filas (filtradas a clientes_foco): {len(visita0)} "
             f"| descartadas por VISITA_0/RESUELTO_SEM_ACTUAL/ENVIA_REPO_WSP: {n_descartadas_por_flags}")
 
-        # --- OSA (Tabla3, ya leida arriba como data3) ---
-        c_total_name = names3[-1]  # 'Total general' es la ultima columna
+        # --- OSA_ALERTA (Tabla OSA_ALERTA, ya leida arriba como data3) ---
+        # sesion 36: ya no hay columna "Total general"/pivot por fecha -- STOCK_B2B y
+        # ALERTA_CRITICA vienen directo por nombre. Se filtra EXPLICITAMENTE por
+        # ALERTA_CRITICA=1 (mismo criterio que con los 3 flags de SIN_VISITA) en vez de
+        # asumir que la query siempre viene pre-filtrada.
+        n_descartadas_por_alerta = 0
         osa_rows = []
         for r in data3:
             cliente = r[idx3["CLIENTE"]]
             if not cliente or str(cliente).strip() not in clientes_foco:
                 continue
             cliente = str(cliente).strip()
+            alerta = rc.valor_o_default(r[idx3["ALERTA_CRITICA"]], None) if "ALERTA_CRITICA" in idx3 else 1
+            if alerta != 1:
+                n_descartadas_por_alerta += 1
+                continue
             cod_kpi = r[idx3["COD KPI ONE"]]
             local = r[idx3["Local"]]
             gestor = r[idx3["GESTORES"]] if "GESTORES" in idx3 else None
             producto = r[idx3["Producto"]]
-            total = r[idx3[c_total_name]]
+            total = rc.valor_o_default(r[idx3["STOCK_B2B"]], 0)
             if cliente.upper() == "TNOGAL" and es_libro(producto):
                 continue
             cadena = inferir_cadena(cod_kpi)
             cod_local_norm = normalizar(cod_kpi, cadena) if cadena else norm_code(cod_kpi)
             osa_rows.append({"cliente": cliente, "cadena": cadena, "cod_local_norm": cod_local_norm,
                               "local_texto": local, "gestor_texto": gestor, "producto": producto, "stock_total": total})
-        log(f"OSA filas (filtradas a clientes_foco, tras exclusion LIBRO/TNOGAL): {len(osa_rows)}")
+        log(f"OSA_ALERTA filas (filtradas a clientes_foco, tras exclusion LIBRO/TNOGAL): {len(osa_rows)} "
+            f"| descartadas por ALERTA_CRITICA!=1: {n_descartadas_por_alerta}")
 
         # --- Consolidar por (cliente, cadena, cod_local_norm) ---
         # osa_productos: lista de (producto, stock) -- se usa tanto para el texto (solo nombre,

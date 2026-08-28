@@ -97,7 +97,21 @@ def main():
         # flags que antes eran filtros de pagina ocultos de una tabla dinamica -- se
         # filtran explicitamente, igual que en build_plantilla.py.
         ws_r = wb_o.Worksheets("SIN_VISITA")
-        ws_o = wb_o.Worksheets("OSA")
+        # sesion 36: OSA_ALERTA reemplaza OSA (pivot por fecha) -- ya trae ALERTA_CRITICA
+        # calculada en el motor, una fila = una alerta real, sin GESTORES propio (se busca
+        # en RUTA_RUTERO por CLIENTE+COD KPI ONE).
+        ws_o = wb_o.Worksheets("OSA_ALERTA")
+        ws_ru = wb_o.Worksheets("RUTA_RUTERO")
+
+        ru_headers, ru_data = leer_tabla_com(ws_ru)
+        ru_idx = {h: i for i, h in enumerate(ru_headers)}
+        gestor_por_local = {}
+        for row in ru_data:
+            cli = row[ru_idx["CLIENTE"]]
+            cod = row[ru_idx["COD KPI ONE"]]
+            if cli and cod:
+                gestor_por_local.setdefault((str(cli).strip(), str(cod).strip().upper()), row[ru_idx["GESTORES"]])
+        log(f"RUTA_RUTERO -> {len(gestor_por_local)} combinaciones cliente+local para respaldo de gestor.")
 
         r_headers, r_data = leer_tabla_com(ws_r)
         r_idx = {h: i for i, h in enumerate(r_headers)}
@@ -128,35 +142,39 @@ def main():
 
         o_headers, o_data = leer_tabla_com(ws_o)
         o_idx = {h: i for i, h in enumerate(o_headers)}
-        fecha_cols = [(i, parse_fecha_header(h)) for i, h in enumerate(o_headers)]
-        fecha_cols = [(i, f) for i, f in fecha_cols if f is not None]
-        col_total = len(o_headers) - 1  # "Total general" es siempre la ultima columna
 
         osa_sin_exhibir = []
+        n_descartadas_por_alerta = 0
         for row in o_data:
-            gestor_raw = rc.valor_o_default(row[o_idx["GESTORES"]], None)
+            alerta = rc.valor_o_default(row[o_idx["ALERTA_CRITICA"]], None) if "ALERTA_CRITICA" in o_idx else 1
+            if alerta != 1:
+                n_descartadas_por_alerta += 1
+                continue
+            cliente = row[o_idx["CLIENTE"]]
+            cod_kpi = row[o_idx["COD KPI ONE"]]
+            # OSA_ALERTA no trae GESTORES propio -- se busca en RUTA_RUTERO por
+            # CLIENTE+COD KPI ONE; si tampoco esta ahi, SIN ASIGNAR (nunca #N/A).
+            gestor_raw = rc.valor_o_default(
+                gestor_por_local.get((str(cliente).strip() if cliente else "", str(cod_kpi).strip().upper() if cod_kpi else "")),
+                None)
             gestor = str(gestor_raw).strip() if gestor_raw else GESTOR_SIN_ASIGNAR
-            ultima_fecha = None
-            valores_fecha = {}
-            for i, fecha in fecha_cols:
-                if row[i] is not None:
-                    valores_fecha[fecha] = row[i]
-                    if ultima_fecha is None or fecha > ultima_fecha:
-                        ultima_fecha = fecha
+            fecha_real = parse_fecha_header(row[o_idx["FECHA_REAL"]]) if "FECHA_REAL" in o_idx else None
+            stock = rc.valor_o_default(row[o_idx["STOCK_B2B"]], 0) or 0
             osa_sin_exhibir.append({
                 "gestor": gestor,
-                "cliente": row[o_idx["CLIENTE"]],
-                "cod_kpi": row[o_idx["COD KPI ONE"]],
+                "cliente": cliente,
+                "cod_kpi": cod_kpi,
                 "local": row[o_idx["Local"]],
                 "producto": row[o_idx["Producto"]],
-                "valores_fecha": valores_fecha,
-                "stock_total": rc.valor_o_default(row[col_total], 0) or 0,
-                "ultima_fecha": ultima_fecha,
-                "atrasado": bool(ultima_fecha and ultima_fecha < SEMANA_ACTUAL_DESDE),
+                "valores_fecha": {fecha_real: stock} if fecha_real else {},
+                "stock_total": stock,
+                "ultima_fecha": fecha_real,
+                "atrasado": bool(fecha_real and fecha_real < SEMANA_ACTUAL_DESDE),
             })
-        log(f"OSA -> {len(osa_sin_exhibir)} filas (OSA_SIN_EXHIBIR).")
+        log(f"OSA_ALERTA -> {len(osa_sin_exhibir)} filas (OSA_SIN_EXHIBIR) | "
+            f"descartadas por ALERTA_CRITICA!=1: {n_descartadas_por_alerta}")
 
-        fechas_ordenadas = sorted({f for _i, f in fecha_cols})
+        fechas_ordenadas = sorted({r["ultima_fecha"] for r in osa_sin_exhibir if r["ultima_fecha"]})
 
         # --- Panel 1: visitas sin reporte, por gestor ---
         por_gestor_v = defaultdict(lambda: {"locales": 0, "visitas": 0, "clientes": Counter()})
