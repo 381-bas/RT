@@ -1,0 +1,68 @@
+#!/bin/sh
+# pre-commit -- bloquea datos y credenciales ANTES de que lleguen al historial de git.
+#
+# Por que existe: en sesion 33 se encontro (a mano, revisando antes de comitear) un
+# archivo con connection strings de Supabase en texto plano que casi entra a un commit
+# en un repo PUBLICO. Este hook automatiza esa revision para que no dependa de que
+# alguien se acuerde de hacerla.
+#
+# Ver memoria_claude/01_kernel.json -> "regla_git_no_datos" para el principio completo
+# (git guarda el razonamiento y las herramientas, nunca los datos).
+#
+# Instalacion (una vez por maquina -- este hook esta versionado, pero la configuracion
+# que le dice a git donde buscarlo NO lo esta):
+#   git config core.hooksPath scripts/git-hooks
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+FAIL=0
+
+if [ -z "$STAGED" ]; then
+    exit 0
+fi
+
+# 1) Extensiones de datos -- defensa en profundidad. El .gitignore ya deberia filtrar
+#    esto; esto atrapa un "git add -f" hecho sin querer, o un tipo de archivo nuevo que
+#    el .gitignore todavia no contempla.
+for f in $STAGED; do
+    case "$f" in
+        *.xlsx|*.xlsm|*.xls|*.csv|*.zip|*.pdf|*.XLSX|*.XLSM|*.XLS|*.CSV|*.ZIP|*.PDF)
+            echo "BLOQUEADO: '$f' es un archivo de datos (extension prohibida). No debe ir a git."
+            FAIL=1
+            ;;
+    esac
+done
+
+# 2) Archivos grandes SIN extension reconocida -- el caso real fueron 2 archivos de
+#    recuperacion de Excel (~26MB, sin extension) que el filtro de arriba no habria
+#    detectado. Cualquier archivo nuevo staged de mas de 2MB se revisa a mano.
+MAX_BYTES=2097152
+for f in $STAGED; do
+    if [ -f "$f" ]; then
+        size=$(wc -c < "$f" 2>/dev/null || echo 0)
+        if [ "$size" -gt "$MAX_BYTES" ]; then
+            size_mb=$((size / 1024 / 1024))
+            echo "BLOQUEADO: '$f' pesa ${size_mb}MB (limite: 2MB). Revisar si es un dato, no codigo."
+            FAIL=1
+        fi
+    fi
+done
+
+# 3) Patrones de credencial en el CONTENIDO agregado -- no solo el nombre del archivo.
+#    Esto es lo que habria atrapado el archivo 'in' de sesion 33: una credencial escrita
+#    dentro de un archivo de texto normal, no un binario, asi que el .gitignore por
+#    extension nunca lo iba a ver.
+CRED_PATTERN='(postgres(ql)?://[^ ]*:[^ ]*@|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|sk-[a-zA-Z0-9]{20,})'
+if git diff --cached -U0 -- $STAGED | grep -qE "^\+.*$CRED_PATTERN"; then
+    echo "BLOQUEADO: el commit agrega texto que parece una credencial (connection string, clave privada, o API key)."
+    echo "Revisa el diff con: git diff --cached"
+    FAIL=1
+fi
+
+if [ "$FAIL" -eq 1 ]; then
+    echo ""
+    echo "Commit cancelado. Si un archivo esta ahi por error:"
+    echo "  git restore --staged <archivo>"
+    exit 1
+fi
+
+exit 0

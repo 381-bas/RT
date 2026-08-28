@@ -1,0 +1,3 @@
+# Los hooks de git deben mantener fin de linea LF siempre (se ejecutan via sh, y un
+# shebang con CRLF falla o se comporta inconsistente en Windows).
+scripts/git-hooks/* text eol=lf
