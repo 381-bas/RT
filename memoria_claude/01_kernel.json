@@ -7,6 +7,25 @@
   "authority": "Este documento es la fuente de verdad ESTRUCTURAL del proyecto: arquitectura, reglas de negocio vigentes, reglas operativas de Claude, y protocolos. Cambia poco. Si algo aqui contradice a 02_state.json, gana 02_state.json (es el snapshot mas reciente). Si algo aqui contradice a la narrativa libre de 04_bitacora_sesiones.json, gana este documento -- la bitacora es historia, no autoridad.",
   "proposito_del_proyecto": "Trazabilidad y automatizacion progresiva de un sistema semanal de reportes/indicadores de gestion retail (visitas, exhibicion OSA, stock negativo, inmovilizado) para uso interno y para comunicacion con clientes (supervisores/gestores de sala).",
 
+  "arquitectura_de_tres_archivos_CORRECCION_sesion34": {
+    "correccion": "Lo documentado hasta ahora como 'arquitectura de dos archivos' estaba incompleto -- el usuario explico en sesion 34 un TERCER archivo, y al inspeccionarlo aparecio que el motor ya construyo por su cuenta las hojas que lo alimentan (2 pivots nuevas: 'SIN VISITA' y 'OSA_SIN_EXHIBIR', no documentadas hasta ahora).",
+    "archivo_3": {
+      "ruta": "C:\\Users\\basti\\Desktop\\RT\\02_SIN_REPORTE_OSA_Y_VISITA_GESTORES.xlsx",
+      "rol": "Planilla PLANA semanal para compartir con gestores/supervisores de oficina -- 'anticipar a donde me voy a dirigir'. NO tiene formulas propias; se arma copiando (a mano) las pivots del motor.",
+      "hojas": {
+        "RESUMEN": "Dashboard ejecutivo construido a mano: 2 paneles por gestor -- (1) VISITAS SIN REPORTE (Locales, Visitas no report., % incump., Clientes foco top 3), (2) OSA -- QUIEBRE Y RECURRENCIA DE REPORTE (Lineas quiebre, Stock u, Reporte atrasado, % atrasado). Tiene totales y notas de periodo.",
+        "LOCALES_SIN_VISITA": "225 filas, mismas columnas que REPORTES en el archivo liviano (GESTORES, COD KPI ONE, LOCAL, CLIENTE, VECES POR SEMANA, FALTANTE). Ventana de 2 semanas (1 cerrada + la en curso) segun el propio texto del RESUMEN -- por eso trae mas filas que el 'SIN VISITA' del motor (137, ventana mas corta).",
+        "OSA_SIN_EXHIBIR": "1837 filas -- practicamente identico en conteo al 'OSA_SIN_EXHIBIR' del motor (tambien 1837), confirma que es copia directa de ahi."
+      }
+    },
+    "hallazgo_en_el_motor": "El motor (02_MINUTAS_CLIENTES.xlsm) YA TIENE 2 hojas nuevas no documentadas antes de sesion 34: 'SIN VISITA' (137 filas -- es una TABLA DINAMICA real: filtros de pagina VISITA_0=1, RESUELTO_SEM_ACTUAL=PERSISTE, ENVIA_REPO_WSP=0, columnas 'Suma de VECES POR SEMANA'/'Suma de FALTANTE') y 'OSA_SIN_EXHIBIR' (1837 filas, mismo formato de pivot por dia que la hoja OSA del archivo liviano pero con 'Stock Total' en vez de 'Total general'). Son la FUENTE de la que se copia manualmente el archivo 3.",
+    "2_hallazgos_de_calidad_de_datos_sesion34": [
+      "3 filas de OSA_SIN_EXHIBIR (motor Y archivo 3) tienen GESTOR='#N/A' literal -- un cruce (probablemente VLOOKUP contra RUTA_RUTERO) no encontro gestor para esos locales. Aparecen tal cual en el RESUMEN como una fila de gestor '#N/A' con 3 lineas de quiebre, 42u de stock -- visible para quien recibe el reporte semanal.",
+      "Las columnas de fecha en OSA_SIN_EXHIBIR (17-08 a 26-08) contienen el valor real (stock/foco de ese dia) pero FORMATEADO COMO FECHA en vez de numero -- ej. el numero 12 se ve/lee como '12-ene-1900', y un valor con decimales (8.2) se ve como '08-ene-1900 04:48' (0.2 de dia = ~4h48m). Es un problema de formato de celda, visible tambien en Excel real, no solo al leer con Python."
+    ],
+    "implicancia": "El pipeline (build_plantilla.py via rt_common.py) YA CALCULA senales muy similares (SEGUIMIENTO/incumplimiento y OSA/quiebre) para PLANTILLA, pero el archivo 3 (RESUMEN para gestores) se construye HOY 100% a mano cada semana, sin ningun script -- es la pieza de automatizacion mas obvia que falta, y el 'bonito error' de #N/A es exactamente el tipo de bug que un pipeline con rt_common.py ya sabe evitar (nunca dejar un cruce fallido como #N/A visible, usar un valor por defecto explicito)."
+  },
+
   "arquitectura_de_dos_archivos": {
     "vigente_desde": "sesion 15",
     "motor": {
