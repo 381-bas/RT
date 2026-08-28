@@ -91,25 +91,40 @@ def obtener_o_recrear_hoja(wb, nombre):
 def main():
     with rc.abrir_excel_com(FILE_ORIGEN) as (app, wb_o):
         log(f"Leyendo fuente: {FILE_ORIGEN}")
-        ws_r = wb_o.Worksheets("REPORTES")
+        # sesion 35: fuente de "sin visita" paso de REPORTES a SIN_VISITA -- Power Query
+        # real contra el motor (antes era copy-paste a mano). SIN_VISITA no trae FALTANTE
+        # (se deriva aca, era tautologico: siempre = -VECES POR SEMANA) pero SI trae 3
+        # flags que antes eran filtros de pagina ocultos de una tabla dinamica -- se
+        # filtran explicitamente, igual que en build_plantilla.py.
+        ws_r = wb_o.Worksheets("SIN_VISITA")
         ws_o = wb_o.Worksheets("OSA")
 
         r_headers, r_data = leer_tabla_com(ws_r)
         r_idx = {h: i for i, h in enumerate(r_headers)}
 
         locales_sin_visita = []
+        n_descartadas_por_flags = 0
         for row in r_data:
+            if "VISITA_0" in r_idx:
+                visita_0 = rc.valor_o_default(row[r_idx["VISITA_0"]], None)
+                resuelto = rc.valor_o_default(row[r_idx["RESUELTO_SEM_ACTUAL"]], None)
+                envia_wsp = rc.valor_o_default(row[r_idx["ENVIA_REPO_WSP"]], None)
+                if not (visita_0 == 1 and resuelto == 0 and envia_wsp == 0):
+                    n_descartadas_por_flags += 1
+                    continue
             gestor_raw = rc.valor_o_default(row[r_idx["GESTORES"]], None)
             gestor = str(gestor_raw).strip() if gestor_raw else GESTOR_SIN_ASIGNAR
+            veces_semana = row[r_idx["VECES POR SEMANA"]] or 0
             locales_sin_visita.append({
                 "gestor": gestor,
                 "cod_kpi": row[r_idx["COD KPI ONE"]],
                 "local": row[r_idx["LOCAL"]],
                 "cliente": row[r_idx["CLIENTE"]],
-                "veces_semana": row[r_idx["VECES POR SEMANA"]] or 0,
-                "faltante": row[r_idx["FALTANTE"]],
+                "veces_semana": veces_semana,
+                "faltante": row[r_idx["FALTANTE"]] if "FALTANTE" in r_idx else -veces_semana,
             })
-        log(f"REPORTES -> {len(locales_sin_visita)} filas (LOCALES_SIN_VISITA).")
+        log(f"SIN_VISITA -> {len(locales_sin_visita)} filas (LOCALES_SIN_VISITA) | "
+            f"descartadas por flags: {n_descartadas_por_flags}")
 
         o_headers, o_data = leer_tabla_com(ws_o)
         o_idx = {h: i for i, h in enumerate(o_headers)}

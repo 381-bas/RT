@@ -232,7 +232,14 @@ def main():
 
         # Detectar si REPORTES/OSA son Tablas (ListObjects, archivo liviano clasico) o
         # rangos con pivot-like headers (fallback). Preferimos ListObjects si existen.
-        ws_r = wb.Worksheets("REPORTES")
+        # sesion 35: la fuente de "sin visita" paso de la hoja REPORTES a SIN_VISITA -- el
+        # usuario construyo una Power Query real contra el motor (antes era copy-paste a
+        # mano). SIN_VISITA trae 3 columnas que antes vivian escondidas como filtros de
+        # pagina de una tabla dinamica (VISITA_0, RESUELTO_SEM_ACTUAL, ENVIA_REPO_WSP) --
+        # se filtran EXPLICITAMENTE en el codigo (ver mas abajo) en vez de confiar en que
+        # la query siempre venga pre-filtrada. Hallazgo real al migrar: SIN_VISITA trajo 2
+        # clientes (PROPAL, BREDEN MASTER) que REPORTES nunca habia mostrado.
+        ws_r = wb.Worksheets("SIN_VISITA")
         ws_o = wb.Worksheets("OSA")
 
         # --- Tabla6 (prefijos) -- ver rt_common.py ---
@@ -293,7 +300,7 @@ def main():
         # universo (eso trajo 44 clientes de golpe en un primer intento). Solo se agregan a
         # MINUTA los clientes de CLIENTES_EXTRA_SIN_MINUTA, nombrados explicitamente por el
         # usuario cuando corresponde (hoy: MORETTA, que no tiene ninguna fila en MINUTA).
-        lo1 = ws_r.ListObjects("Tabla1")
+        lo1 = ws_r.ListObjects("SIN_VISITA")
         names1 = [lo1.ListColumns(i).Name for i in range(1, lo1.ListColumns.Count + 1)]
         idx1 = {n: i for i, n in enumerate(names1)}
         data1 = lo1.DataBodyRange.Value
@@ -339,7 +346,14 @@ def main():
             })
         log(f"MINUTA filas utilizables (tras exclusion LIBRO/TNOGAL): {len(minuta_rows)}")
 
-        # --- REPORTES = CUMPLIMIENTO (Tabla1, ya leida arriba como data1) ---
+        # --- SIN_VISITA = CUMPLIMIENTO (antes REPORTES; ya leida arriba como data1) ---
+        # sesion 35: filtro EXPLICITO por las 3 columnas que antes eran filtros de pagina
+        # de la tabla dinamica del motor -- VISITA_0=1 (no hubo visita), RESUELTO_SEM_
+        # ACTUAL=0 (el incumplimiento persiste, no se resolvio esta semana), ENVIA_REPO_
+        # WSP=0 (aun no se le aviso al gestor por WhatsApp). No confiar en que la Power
+        # Query siempre venga pre-filtrada -- se verifica en codigo, con rc.valor_o_default
+        # por si alguno de los 3 campos llega como error de Excel via COM.
+        n_descartadas_por_flags = 0
         visita0 = []
         for r in data1:
             cliente = r[idx1["CLIENTE"]]
@@ -347,6 +361,13 @@ def main():
                 continue
             if str(cliente).strip() in CLIENTES_SIN_REPORTES:
                 continue
+            if "VISITA_0" in idx1:  # SIN_VISITA (nueva fuente) trae estos 3 flags; REPORTES no
+                visita_0 = rc.valor_o_default(r[idx1["VISITA_0"]], None)
+                resuelto = rc.valor_o_default(r[idx1["RESUELTO_SEM_ACTUAL"]], None)
+                envia_wsp = rc.valor_o_default(r[idx1["ENVIA_REPO_WSP"]], None)
+                if not (visita_0 == 1 and resuelto == 0 and envia_wsp == 0):
+                    n_descartadas_por_flags += 1
+                    continue
             cod_kpi = r[idx1["COD KPI ONE"]]
             local = r[idx1["LOCAL"]]
             gestor = r[idx1["GESTORES"]] if "GESTORES" in idx1 else None
@@ -354,7 +375,8 @@ def main():
             cod_local_norm = normalizar(cod_kpi, cadena) if cadena else norm_code(cod_kpi)
             visita0.append({"cliente": str(cliente).strip(), "cadena": cadena,
                              "cod_local_norm": cod_local_norm, "local_texto": local, "gestor_texto": gestor})
-        log(f"REPORTES/CUMPLIMIENTO filas (filtradas a clientes_foco): {len(visita0)}")
+        log(f"SIN_VISITA/CUMPLIMIENTO filas (filtradas a clientes_foco): {len(visita0)} "
+            f"| descartadas por VISITA_0/RESUELTO_SEM_ACTUAL/ENVIA_REPO_WSP: {n_descartadas_por_flags}")
 
         # --- OSA (Tabla3, ya leida arriba como data3) ---
         c_total_name = names3[-1]  # 'Total general' es la ultima columna
