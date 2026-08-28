@@ -54,6 +54,44 @@ def fmt_num(x):
     return str(x)
 
 
+
+# Cuando una celda de Excel contiene un error (#N/A, #REF!, #VALUE!, etc.) y se lee su
+# .Value via COM, NO llega como texto "#N/A" -- llega como un entero negativo especifico
+# (el HRESULT del error, ej. -2146826246 para #N/A). Un simple "if valor:" no lo detecta
+# porque es un numero truthy como cualquier otro. Encontrado en sesion 34 en la columna
+# GESTORES de OSA (un cruce roto en el archivo fuente).
+ERRORES_COM_EXCEL = {
+    -2146826288,  # #NULL!
+    -2146826281,  # #DIV/0!
+    -2146826273,  # #VALUE!
+    -2146826265,  # #REF!
+    -2146826259,  # #NAME?
+    -2146826252,  # #NUM!
+    -2146826246,  # #N/A
+}
+
+
+def es_error_com(valor):
+    """True si `valor` es un error de Excel leido via COM (entero HRESULT) o el texto
+    literal de un error (#N/A, #REF!, etc. -- por si llega ya como string, ej. al leer
+    con openpyxl en vez de COM)."""
+    if isinstance(valor, int) and valor in ERRORES_COM_EXCEL:
+        return True
+    if isinstance(valor, str) and valor.strip().startswith("#"):
+        return True
+    return False
+
+
+def valor_o_default(valor, default):
+    """Devuelve `default` si `valor` es None, vacio, o un error de Excel (ver
+    es_error_com) -- nunca deja pasar un error de Excel como si fuera un dato real."""
+    if valor is None or es_error_com(valor):
+        return default
+    if isinstance(valor, str) and not valor.strip():
+        return default
+    return valor
+
+
 def es_libro(texto):
     """TNOGAL: excluir productos de la linea 'LIBRO' (no es foco de gestion de este
     pipeline). Aplica tanto a MINUTA como a OSA."""
