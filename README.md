@@ -45,6 +45,19 @@ projects/
 - Ver `memoria_claude/05_roadmap.json` (horizonte H1) para el diagnóstico completo que originó
   este patrón.
 
+## Seguridad: hook pre-commit (agregado 2026-08-27)
+
+El repo trae un hook de git versionado que bloquea automáticamente cualquier intento de
+comitear datos (`.xlsx`, `.xlsm`, archivos grandes sin extensión) o texto que parezca una
+credencial (connection strings, claves privadas, API keys). Se activa una vez por máquina:
+
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
+Sin ese `git config`, el hook existe en el repo pero **no corre** — es la única parte de
+esta protección que no viaja sola con `git clone`.
+
 ## Encargos activos con este patrón
 
 - `projects/BESHOS_resumen_retail`: informe de rendimiento retail para BESHOS.

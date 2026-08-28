@@ -123,6 +123,7 @@
     },
     {
       "id": "H3",
+      "estado": "EN CURSO (sesion 33): primer paso ejecutado -- scripts/git-hooks/pre-commit (hook de seguridad, versionado). El usuario pidio explicitamente que /encargo NO se construya todavia sobre supuestos ('quiero que sea potente... no sea solo pensamos que era asi') -- se sigue exponiendo como trabaja antes de codificar ese comando. /cerrar y /semana tampoco iniciados.",
       "nombre": "Convertir los patrones en capacidad invocable",
       "objetivo": "Que abrir un encargo, o cerrarlo, sea un comando y no una conversacion.",
       "depende_de": "H1 (tiene que existir la estructura antes de poder automatizarla)",

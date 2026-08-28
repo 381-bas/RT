@@ -58,6 +58,14 @@
     "implementacion_vigente": "build_plantilla.py."
   },
 
+  "hook_pre_commit_seguridad": {
+    "vigente_desde": "sesion 33 (2026-08-27)",
+    "que_es": "scripts/git-hooks/pre-commit -- hook de git VERSIONADO (vive en el repo, no en .git/hooks/ que nunca se sube). Se activa una vez por maquina con `git config core.hooksPath scripts/git-hooks`; sin ese comando existe pero no corre.",
+    "que_bloquea": "(1) extensiones de datos (.xlsx/.xlsm/.xls/.csv/.zip/.pdf), (2) cualquier archivo staged de mas de 2MB sin extension reconocida (el caso real: 2 archivos de recuperacion de Excel de ~26MB sin extension), (3) patrones de credencial en el CONTENIDO agregado (cadenas de conexion de bases de datos con usuario y clave incrustados, claves privadas, API keys largas) -- esto ultimo es lo que habria bloqueado el archivo 'in' de sesion 33, que no era un binario sino texto con una credencial adentro. NOTA: esta misma descripcion, escrita como ejemplo literal antes, hizo que el hook se bloqueara A SI MISMO al comitear esta entrada de memoria -- ver deprecated_patterns en 03_ledger.json.",
+    "probado": "Con un .xlsx forzado (git add --force) y una credencial de prueba en un .py -- ambos casos bloqueados correctamente antes de que el commit se creara.",
+    "regla_operativa": "Este hook es una red de seguridad AUTOMATICA, pero no reemplaza la revision de `git add -A --dry-run` antes de un commit grande -- son capas distintas, ambas se mantienen."
+  },
+
   "regla_normalizacion_codigo_local": {
     "principio": "OSA, REPORTES y VENTAS usan 'COD KPI ONE' (siempre con prefijo de cadena si aplica). MINUTA usa 'COD_LOCAL' -- y AQUI ES DONDE VARIA POR CLIENTE: la mayoria de los clientes ya trae MINUTA.COD_LOCAL limpio (sin prefijo), pero ALUSWEET fue el primer caso donde MINUTA SI trae el prefijo (ej. 'EX142' en vez de '142').",
     "regla_operativa": "SOLO aplicar el 'quitar SUFIJO' de Tabla6 a MINUTA.COD_LOCAL CUANDO la minuta no trae el dato correcto (prefijado cuando no deberia). No asumir de entrada que un cliente nuevo viene limpio o prefijado -- verificar con datos reales antes de generar PLANTILLA.",
