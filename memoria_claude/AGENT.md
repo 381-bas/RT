@@ -44,6 +44,32 @@ Si no hay nada que proponer, decirlo — no inventar relleno. Proponer no es eje
 3. Agregar la sesión a `04_bitacora_sesiones.json`.
 4. Tocar `01_kernel.json` y `00_manifest.json` **solo** si cambia una regla estructural o el modelo de memoria mismo — no en cada sesión normal.
 
+## Estructura de clientes
+
+Cada cliente en `projects/<NOMBRE>/` sigue este patrón:
+```
+_memoria/AGENT.md              ← Lee esto primero en cada sesión del cliente
+datos/                         ← Archivos fuente (compartidos entre tareas)
+tareas/<nombre>_<DD_MM>/       ← Iteraciones cronológicas
+  ├── README.md                ← Descripción, entrada, checklist
+  └── _generated/              ← Scripts, JSON, outputs (lo que genera Claude)
+```
+
+**Regla de nombres de tarea**: `<descripcion>_<DD_MM>` (sin espacios, kebab-case)
+- Ejemplo: `resumen_retail_26_08`, `Cierre_Piloto_31_08`, `locales_trebol_31_08`
+- Ventaja: ordenan cronológicamente, son autoexplicativos
+
+**Regla de archivos**:
+- Datos fuente (Excel grandes) → `datos/` (NO duplicar en tareas)
+- Outputs (scripts, JSON, Excel resultados) → `_generated/` dentro de la tarea
+- Backups puntuales → dentro de la tarea que los generó (si es necesario)
+
 ## Clientes activos (detalle en `02_state.json`)
 
 MAILEMU MIEL, GRANA, CORRALES DEL SUR, BESHOS, BIGU, BERRYSUR, ALUSWEET — cada uno con sus excepciones propias (mensajes, pesos de Riesgo, agrupaciones). No asumir que un cliente nuevo se comporta como los anteriores: verificar con datos reales (ALUSWEET rompió esa suposición dos veces — ver `deprecated_patterns`).
+
+## Clientes en proyectos (`projects/`)
+
+- **BESHOS**: resumen retail (S26-S33/2026) — validación con cliente en curso
+- **TREBOL**: análisis de locales — en planificación
+- **hoffmann**: repo git existente, archivos de trabajo por ubicar
