@@ -1,26 +1,30 @@
-# TREBOL — Gestión de locales
+# TREBOL — Análisis de locales
 
-Cliente: TREBOL (análisis de locales)  
-Última actualización: 2026-08-31
+**Cliente**: TREBOL  
+**Período**: Agosto 2026  
+**Última actualización**: 2026-08-31
 
-## Estado actual
+## Entrada
 
-**Fase 1 (en progreso): Análisis de locales**
-- Datos: `datos/LOCALES TREBOL 2026*.xlsx` (3 versiones: base, backup, interno)
-- Tarea actual: `tareas/2026-08_locales_trebol/`
+Lee este archivo al iniciar trabajo con TREBOL.
 
-## Archivos
+## Estado
 
-| Archivo | Descripción |
-|---|---|
-| `LOCALES TREBOL 2026.xlsx` | Versión base cliente |
-| `LOCALES TREBOL 2026_BACKUP_20260827.xlsx` | Backup anterior |
-| `LOCALES TREBOL 2026_INTERNO.xlsx` | Versión interna (análisis) |
+**Fase 1 (planificación)**: Definir análisis de locales para período 2026.
 
-## Próximos pasos
+Tarea activa: `tareas/locales_trebol_31_08/`
 
-- Definir necesidades de análisis (reportes, métricas, gráficos)
-- Crear scripts según patrón BESHOS si es necesario
-- Documentar decisiones en esta carpeta _memoria/
+## Datos fuente
 
-Léeme al empezar trabajo en TREBOL.
+| Archivo | Descripción | Última mod |
+|---|---|---|
+| `LOCALES TREBOL 2026.xlsx` | Versión base cliente | 2026-08-27 |
+| `LOCALES TREBOL 2026_INTERNO.xlsx` | Versión análisis/trabajo | 2026-08-27 |
+| `LOCALES TREBOL 2026_BACKUP_20260827.xlsx` | Respaldo anterior | 2026-08-27 |
+
+## Pendiente
+
+- Definir métricas clave por local
+- Enfoque del análisis (rendimiento, anomalías, tendencias)
+- Formato de entrega al cliente
+- Periodicidad (puntual o recurrente)

@@ -1,34 +1,30 @@
-# BESHOS — Resumen Retail (Cliente)
+# BESHOS
 
-## Qué se pidió
+**Cliente**: BESHOS (bebidas/néctar)  
+**Período**: Agosto 2026 (S26-S33)
 
-Informe de rendimiento retail para el cliente BESHOS, a partir de la extracción completa
-de sus datos de gestión (visitas, OSA, inventario) en el período correspondiente.
+## Entrada
 
-## Cuándo
+Lee primero: `_memoria/AGENT.md` — contexto, decisiones codificadas, archivos críticos.
 
-Agosto de 2026 (migrado a esta estructura el 2026-08-27; el trabajo original es del
-2026-08-25/26, cuando vivía suelto en `CLIENTE_GG/`).
+## Estructura
 
-## Estado
+```
+_memoria/            ← Punto de entrada (AGENT.md)
+datos/               ← Fuentes compartidas (ANÁLISIS_BESHOS.xlsx)
+tareas/              ← Iteraciones cronológicas
+  ├── resumen_retail_26_08/     ← Análisis completado (scripts + output)
+  └── Cierre_Piloto_31_08/      ← Validación con cliente (en progreso)
+```
 
-**Cerrado.** El entregable fue generado y presentado.
+## Tareas activas
 
-## Entregable vigente
+| Tarea | Estado | Descripción |
+|---|---|---|
+| `resumen_retail_26_08` | ✅ Completada | Extracción 5 retailers, pre-post takeover, Excel cliente |
+| `Cierre_Piloto_31_08` | 🔄 En progreso | Validación con cliente, feedback, decisiones escalado |
 
-`3_entrega/BESHOS - Resumen Retail (Cliente).xlsx`
+## Entregables
 
-## Contenido de este encargo
-
-- `1_fuente/ANÁLISIS_BESHOS.xlsx` — extracción cruda de BESHOS (7,3 MB), fuente única. No editar.
-- `2_trabajo/extract_full.py` — extracción/parseo desde la fuente.
-- `2_trabajo/build_client_report.py` — construcción del informe final a partir de lo extraído.
-- `2_trabajo/analisis_beshos_retail.json` — resultado intermedio de la extracción.
-- `2_trabajo/resumen_retail_chart.html` — exploración visual usada durante el análisis (no es el entregable).
-- `3_entrega/BESHOS - Resumen Retail (Cliente).xlsx` — el informe final presentado al cliente.
-
-## Nota de migración
-
-Este encargo fue el primer caso de prueba del patrón `projects/<CLIENTE>_<ENCARGO>/`
-(ver `memoria_claude/05_roadmap.json`, horizonte H1). Se migró completo desde `CLIENTE_GG/`
-sin tocar contenido, solo reorganizando ubicación.
+- `tareas/resumen_retail_26_08/_generated/BESHOS - Resumen Retail (Cliente).xlsx`
+- `tareas/Cierre_Piloto_31_08/Analisis_cierre_cliente.xlsx` (cuando esté listo)
