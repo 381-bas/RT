@@ -1,0 +1,63 @@
+{
+  "fecha_ejecucion": "2026-08-31T15:58:00",
+  "tarea": "Cierre_Piloto_31_08",
+  "entrada": "Analisis_cierre.xlsx",
+  "salida": "Analisis_cierre_cliente.xlsx",
+  "propuesta": {
+    "nombre": "2C.2A (Aprobada)",
+    "descripcion": "Regalar SMU+Tottus, distribuir costo con ponderación estratégica",
+    "costo_total_empresa": 2929340.1,
+    "salas_totales": 282,
+    "salas_pagadoras": 239,
+    "salas_gratis": 43,
+    "ponderacion": {
+      "WALMART": "42%",
+      "CENCOSUD_JUMBO": "33%",
+      "CENCOSUD_SANTA_ISABEL": "25%",
+      "SMU": "0% (Gratis)",
+      "TOTTUS": "0% (Gratis)"
+    },
+    "detalle": {
+      "WALMART": {
+        "salas": 93,
+        "costo": 1230322.84,
+        "tarifa_por_sala": 13229.28,
+        "cambio_vs_opc1_pct": 7.7
+      },
+      "CENCOSUD_JUMBO": {
+        "salas": 58,
+        "costo": 966682.23,
+        "tarifa_por_sala": 16666.94,
+        "cambio_vs_opc1_pct": 27.8
+      },
+      "CENCOSUD_SANTA_ISABEL": {
+        "salas": 88,
+        "costo": 732335.03,
+        "tarifa_por_sala": 8321.99,
+        "cambio_vs_opc1_pct": 2.2
+      },
+      "SMU": {
+        "salas": 16,
+        "costo": 0,
+        "tarifa_por_sala": 0,
+        "cambio_vs_opc1_pct": -100,
+        "nota": "Plan piloto gratis"
+      },
+      "TOTTUS": {
+        "salas": 27,
+        "costo": 0,
+        "tarifa_por_sala": 0,
+        "cambio_vs_opc1_pct": -100,
+        "nota": "Plan piloto gratis"
+      }
+    }
+  },
+  "argumentos_gerencia": [
+    "Mantener ingresos totales: $2,929,340 (igual opción 1)",
+    "Densidad de presencia: 282 salas (vs 239 pagadoras)",
+    "Prioridad clara: Walmart lidera (+7.7%), Cencosud segundo pilar (+27.8%)",
+    "Plan piloto SMU+Tottus: cuando crezcan = +$313K anuales adicionales",
+    "Mayor valor a largo plazo, impacto comercial actual mantenido"
+  ],
+  "ejecutado_por": "claude"
+}
