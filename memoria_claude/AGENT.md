@@ -2,6 +2,8 @@
 
 Este es el punto de entrada. Léelo primero en cualquier sesión nueva, antes de abrir cualquier Excel.
 
+**IMPORTANTE**: Este archivo documenta el proyecto principal (Motor + Plantilla de minutas). Para trabajo de clientes individuales, ve a `../projects/<CLIENTE>/` — cada cliente tiene su propio `_memoria/AGENT.md`.
+
 ## Qué es este proyecto
 
 Automatización progresiva de un sistema semanal de reportes/indicadores de gestión retail (visitas, exhibición OSA, stock negativo, inmovilizado), sobre dos archivos Excel:
