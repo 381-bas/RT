@@ -125,6 +125,13 @@
     "probado": "Contra 02_MINUTAS_CLIENTES_PLANTILLA.xlsm real: listar hojas, contar por Marca en PLANTILLA, y filtrar MORETTA -- los 3 dieron el resultado esperado en un solo comando cada uno."
   },
 
+  "leccion_formulas_de_estado_que_ven_el_futuro_sesion37": {
+    "que_es": "Cualquier formula tipo MAXIFS/COUNTIFS (MAX.SI.CONJUNTO/CONTAR.SI.CONJUNTO) agrupada por una llave (SKU+Local, etc.) que calcula un valor 'como esta la cosa ahora' (ultimo registro, streak, racha) SIN una condicion adicional que acote por la fecha de la fila propia, 've el futuro': cada fila del grupo hereda el resultado de TODO el historial, incluidas filas que ocurrieron despues de ella en el tiempo.",
+    "ya_causo_2_bugs_reales": "(1) ULTIMA_FECHA_HORA_SEMANA/ES_ULTIMO_REGISTRO/ALERTA_CRITICA sin acotar por semana (sesion 29/37). (2) Primer intento de FECHA_ULTIMO_OK/VISITAS_SIN_RESOLVER (sesion 37): una visita mala ANTES de un OK posterior quedaba oculta -- 4.723 de 130.171 filas mostraban streak=0 debiendo mostrar >=1.",
+    "fix_general": "Agregar una condicion de acotamiento temporal a la formula: [email protected] de la propia columna de fecha, con '<=' contra la fecha/hora de la fila actual (ej. Reporte_OSA[FECHA_HORA];'<='&[@[FECHA_HORA]]). CONTAR.SI.CONJUNTO/MAX.SI.CONJUNTO aceptan la MISMA columna 2 veces con criterios distintos (uno para el piso, otro para el techo) -- confirmado sintacticamente valido.",
+    "regla_general_a_futuro": "Ante CUALQUIER formula 'de estado' agrupada por llave, preguntarse explicitamente: '¿esto puede ver informacion de DESPUES de esta fila?' -- si la respuesta es si, falta la condicion de acotamiento temporal. Aplicar esta pregunta como checklist antes de entregar una formula de este tipo, no solo despues de que el usuario reporte un resultado raro."
+  },
+
   "hook_pre_commit_seguridad": {
     "vigente_desde": "sesion 33 (2026-08-27)",
     "que_es": "scripts/git-hooks/pre-commit -- hook de git VERSIONADO (vive en el repo, no en .git/hooks/ que nunca se sube). Se activa una vez por maquina con `git config core.hooksPath scripts/git-hooks`; sin ese comando existe pero no corre.",
@@ -169,7 +176,7 @@
 
   "protocolo_entrega_de_formulas_a_usuario": {
     "_fuente": "LECCION_FORMATO_ENTREGA_DE_FORMULAS_sesion29 en memoria_proyecto.json (historico), consolidada aqui como regla vigente.",
-    "locale_confirmado_del_usuario": "Separador de argumentos: PUNTO Y COMA (;). Funciones: ESPANOL, nombre exacto verificado (ej. SI.ERROR con punto, no 'SIERROR'). Separador decimal: COMA (0,5 no 0.5). Referencias de tabla en la fila actual: corchete DOBLE [@[Columna]], no [@Columna].",
+    "locale_confirmado_del_usuario": "Separador de argumentos: PUNTO Y COMA (;). Funciones: ESPANOL, nombre exacto verificado (ej. SI.ERROR con punto, no 'SIERROR'; MAX.SI.CONJUNTO para MAXIFS y CONTAR.SI.CONJUNTO para COUNTIFS, ambos confirmados funcionando en sesion 37). Separador decimal: COMA (0,5 no 0.5). Referencias de tabla en la fila actual: corchete DOBLE [@[Columna]], no [@Columna]. La MISMA columna puede aparecer 2 veces en un CONTAR.SI.CONJUNTO con criterios distintos (ej. FECHA_HORA una vez con '>' y otra con '<=') para armar un rango 'entre X e Y' -- confirmado sintacticamente valido.",
     "reglas": [
       "Nunca entregar una formula sin verificar el nombre EXACTO en espanol de cada funcion usada (especialmente las que llevan punto, como SI.ERROR).",
       "Evitar funciones cuyo nombre regional no este 100% confirmado (ej. VALHORA/TIMEVALUE no aparecio en el autocompletado del usuario en un caso real) -- preferir construir el calculo con funciones ya validadas (IZQUIERDA/EXTRAE/HALLAR/VALOR) en vez de arriesgar un nombre de funcion no confirmado.",
